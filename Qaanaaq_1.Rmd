@@ -8,6 +8,123 @@ output:
 ```{r}
 rm(list=ls())
 setwd("~/WORKSHOP/QAANAAQ/")
+library(sp)
+library(nleqslv)
+library(lubridate)
+library(oce)
+library(nloptr)
+library(maps)
+library(ggplot2)
+library(ggmap)
+library(parallel)
+
+#
+df <- read.csv("DATA/EXB_csv.csv",sep=",",header=T)
+parsed_date <- strptime(df$DateTime.UTC..YYMMDDHHmmss., format="%Y-%m-%dT%H:%M:%S")
+# Convert to POSIXct
+df$POSIX <- as.POSIXct(parsed_date)
+df <- df[,-3]
 ```
+
+
+# lat/lon to northings/eastings
+```{r}
+# Create a SpatialPoints object
+points <- SpatialPoints(cbind(df$Long, df$Lat), proj4string = CRS("+proj=longlat +ellps=WGS84"))
+
+# Define the target projection
+target_projection <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs"
+
+# Transform the coordinates to the target projection
+transformed_points <- spTransform(points, CRS(target_projection))
+
+# Extract the eastings and northings
+eastings <- transformed_points@coords[,1]
+northings <- transformed_points@coords[,2]
+
+
+
+# Create a data frame with the eastings and northings
+df$easting <- eastings
+df$northings <- northings
+
+```
+
+
+# calculate speeds between points observed
+```{r}
+speed <- NULL
+for (i in 1:(nrow(df)-1))
+{
+  dx <- sqrt((df$easting[i+1]-df$easting[i])^2+(df$northings[i+1]-df$northings[i])^2)
+  dt <- as.numeric(df$POSIX[i+1]-df$POSIX[i])
+  speed <- c(speed,dx/dt)
+}
+speed <- c(speed,NA)
+df$speed <- speed
+```
+
+# plots
+```{r}
+plot(df$POSIX,df$speed,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
+```
+
+# Scargle periodogram
+```{r}
+library(lomb)
+df <- na.omit(df)
+df$hours <- as.numeric(difftime(df$POSIX, min(df$POSIX), units = "hours"))
+
+test_period_in_hours <- 15
+test_signal <- sin(2*pi/test_period_in_hours*df$hours)*0.0 #0.005
+# Compute Lomb-Scargle periodogram
+ls_periodogram <- lsp(cbind(df$hours, df$speed-mean(df$speed)+test_signal), fit.sin = TRUE, type="period", log="y",from=2, to = 29,ofac=8)
+
+```
+
+
+# plots
+```{r}
+
+plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(2,29),ylim=c(0,0.004),log="x")
+abline(v=test_period_in_hours,col=2,lwd=1)
+abline(v=24,col=2,lwd=1)
+abline(v=12,col=2,lwd=1)
+abline(v=12.41666,col=4,lty=3,lwd=3)
+abline(v=24/3,col=2,lwd=1)
+abline(v=24/4,col=2,lwd=1)
+abline(v=24/5,col=2,lwd=1)
+
+
+abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
+
+plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(11,13),ylim=c(0,0.004),log="x")
+abline(v=test_period_in_hours,col=2,lwd=1)
+abline(v=24,col=2,lwd=1)
+abline(v=12,col=2,lwd=1)
+abline(v=12.41666,col=4,lty=3,lwd=3)
+abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
+legend("topleft",legend="M2 marked with blue stippled")
+
+plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(21,25),ylim=c(0,0.004),log="x")
+abline(v=test_period_in_hours,col=2,lwd=1)
+abline(v=24,col=2,lwd=1)
+abline(v=12,col=2,lwd=1)
+abline(v=12.41666,col=4,lty=3,lwd=3)
+abline(v=21.2895,col=4,lty=3,lwd=3)
+abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
+legend("top",legend="24 and 21.2895 hours")
+
+
+plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(5.5,5.75),ylim=c(0,0.004),log="x")
+abline(v=test_period_in_hours,col=2,lwd=1)
+abline(v=5.6299,col=2,lwd=1)
+abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
+legend("topleft",legend="5.6299 hours")
+```
+
+
+
+
 
  
