@@ -47,26 +47,39 @@ northings <- transformed_points@coords[,2]
 # Create a data frame with the eastings and northings
 df$easting <- eastings
 df$northings <- northings
-
+#
+plot(df$easting,df$northings,asp=1)
 ```
 
 
 # calculate speeds between points observed
 ```{r}
 speed <- NULL
+u <- NULL
+v <- NULL
 for (i in 1:(nrow(df)-1))
 {
-  dx <- sqrt((df$easting[i+1]-df$easting[i])^2+(df$northings[i+1]-df$northings[i])^2)
+  d_easting <- df$easting[i+1]-df$easting[i]
+  d_northing <- df$northings[i+1]-df$northings[i]
+  dr <- sqrt((d_easting)^2+(d_northing)^2)
   dt <- as.numeric(df$POSIX[i+1]-df$POSIX[i])
-  speed <- c(speed,dx/dt)
+  speed <- c(speed,dr/dt)
+  u <- c(u,d_easting/dt)
+  v <- c(v,d_northing/dt)
 }
 speed <- c(speed,NA)
+u <- c(u,NA)
+v <- c(v,NA)
 df$speed <- speed
+df$u <- u
+df$v <- v
 ```
 
 # plots
 ```{r}
 plot(df$POSIX,df$speed,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
+plot(df$POSIX,df$u,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="u-speed [m/s]")
+plot(df$POSIX,df$v,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="v-speed [m/s]")
 ```
 
 # Scargle periodogram
@@ -74,29 +87,41 @@ plot(df$POSIX,df$speed,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="spee
 library(lomb)
 df <- na.omit(df)
 df$hours <- as.numeric(difftime(df$POSIX, min(df$POSIX), units = "hours"))
-
+# speed
 test_period_in_hours <- 15
 test_signal <- sin(2*pi/test_period_in_hours*df$hours)*0.0 #0.005
 # Compute Lomb-Scargle periodogram
-ls_periodogram <- lsp(cbind(df$hours, df$speed-mean(df$speed)+test_signal), fit.sin = TRUE, type="period", log="y",from=2, to = 29,ofac=8)
-
+ls_periodogram <- lsp(cbind(df$hours, df$speed-mean(df$speed)+test_signal), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
+# u
+# Compute Lomb-Scargle periodogram
+ls_periodogram_u <- lsp(cbind(df$hours, df$u-mean(df$u)), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
+# v
+# Compute Lomb-Scargle periodogram
+ls_periodogram_v <- lsp(cbind(df$hours, df$v-mean(df$v)), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
+# test signal
+test_period_in_hours <- 6.3
+test_signal <- sin(2*pi/test_period_in_hours*df$hours)*0.01
+ls_periodogram_test <- lsp(cbind(df$hours, test_signal), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
 ```
 
 
 # plots
 ```{r}
-
+pdf("FIGURES/spectra.pdf")
+par(mfrow=c(3,1))
 plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(2,29),ylim=c(0,0.004),log="x")
-abline(v=test_period_in_hours,col=2,lwd=1)
-abline(v=24,col=2,lwd=1)
-abline(v=12,col=2,lwd=1)
-abline(v=12.41666,col=4,lty=3,lwd=3)
-abline(v=24/3,col=2,lwd=1)
-abline(v=24/4,col=2,lwd=1)
-abline(v=24/5,col=2,lwd=1)
-
-
+#abline(v=test_period_in_hours,col=2,lwd=1)
+#abline(v=24,col=2,lwd=1)
+#abline(v=12,col=2,lwd=1)
+#abline(v=12.41666,col=4,lty=3,lwd=3)
+#abline(v=24/3,col=2,lwd=1)
+#abline(v=24/4,col=2,lwd=1)
+#abline(v=24/5,col=2,lwd=1)
+lines(ls_periodogram_u$scanned, ls_periodogram_u$power,col=2,lwd=2)
+lines(ls_periodogram_v$scanned, ls_periodogram_v$power,col=4,lwd=2)
 abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
+legend("top",legend="black : speed, red : u, blue : v")
+
 
 plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(11,13),ylim=c(0,0.004),log="x")
 abline(v=test_period_in_hours,col=2,lwd=1)
@@ -105,6 +130,8 @@ abline(v=12,col=2,lwd=1)
 abline(v=12.41666,col=4,lty=3,lwd=3)
 abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
 legend("topleft",legend="M2 marked with blue stippled")
+lines(ls_periodogram_u$scanned, ls_periodogram_u$power,col=2,lwd=2)
+lines(ls_periodogram_v$scanned, ls_periodogram_v$power,col=4,lwd=2)
 
 plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(21,25),ylim=c(0,0.004),log="x")
 abline(v=test_period_in_hours,col=2,lwd=1)
@@ -114,13 +141,20 @@ abline(v=12.41666,col=4,lty=3,lwd=3)
 abline(v=21.2895,col=4,lty=3,lwd=3)
 abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
 legend("top",legend="24 and 21.2895 hours")
+lines(ls_periodogram_u$scanned, ls_periodogram_u$power,col=2,lwd=2)
+lines(ls_periodogram_v$scanned, ls_periodogram_v$power,col=4,lwd=2)
 
-
-plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(5.5,5.75),ylim=c(0,0.004),log="x")
+plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(5.5,5.75),ylim=c(0,0.006),log="x")
 abline(v=test_period_in_hours,col=2,lwd=1)
 abline(v=5.6299,col=2,lwd=1)
 abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
-legend("topleft",legend="5.6299 hours")
+lines(ls_periodogram_u$scanned, ls_periodogram_u$power,col=2,lwd=2)
+lines(ls_periodogram_v$scanned, ls_periodogram_v$power,col=4,lwd=2)
+legend("topleft",legend=c("vertical : 5.6299 hours","u red, v blue, speed black"))
+
+# spectrum of test signal
+plot(ls_periodogram_test$scanned, ls_periodogram_test$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(2,29),ylim=c(0,0.0004),log="x")
+dev.off()
 ```
 
 
