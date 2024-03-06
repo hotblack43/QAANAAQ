@@ -24,6 +24,8 @@ parsed_date <- strptime(df$DateTime.UTC..YYMMDDHHmmss., format="%Y-%m-%dT%H:%M:%
 # Convert to POSIXct
 df$POSIX <- as.POSIXct(parsed_date)
 df <- df[,-3]
+#
+plot(df$Long,df$Lat)
 ```
 
 
@@ -33,7 +35,8 @@ df <- df[,-3]
 points <- SpatialPoints(cbind(df$Long, df$Lat), proj4string = CRS("+proj=longlat +ellps=WGS84"))
 
 # Define the target projection
-target_projection <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs"
+#target_projection <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs"
+target_projection <- "+proj=utm +zone=19X +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 # Transform the coordinates to the target projection
 transformed_points <- spTransform(points, CRS(target_projection))
@@ -48,9 +51,9 @@ northings <- transformed_points@coords[,2]
 df$easting <- eastings
 df$northings <- northings
 #
-plot(df$easting,df$northings,asp=1)
+plot(df$easting/1000,df$northings/1000,asp=1,xlab="Easting [km]",ylab="Northing [km]",pch=19,cex=0.1)
 ```
-
+## Why the positive Easting??
 
 # calculate speeds between points observed
 ```{r}
