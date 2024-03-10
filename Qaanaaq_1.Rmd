@@ -17,12 +17,12 @@ library(maps)
 library(ggplot2)
 library(ggmap)
 library(parallel)
-
+library(sf)
 #
 df <- read.csv("DATA/EXB_csv.csv",sep=",",header=T)
 parsed_date <- strptime(df$DateTime.UTC..YYMMDDHHmmss., format="%Y-%m-%dT%H:%M:%S")
 # Convert to POSIXct
-df$POSIX <- as.POSIXct(parsed_date)
+df$POSIX <- as.POSIXct(parsed_date) #,tz="UTC")
 df <- df[,-3]
 #
 plot(df$Long,df$Lat)
