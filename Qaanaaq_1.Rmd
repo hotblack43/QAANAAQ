@@ -4,6 +4,14 @@ output:
   pdf_document: 
     fig_height: 7
 ---
+
+
+
+TODO:
+
+a) split series into shorter bits and see if the spectrum changes
+
+
  
 ```{r}
 rm(list=ls())
@@ -215,7 +223,12 @@ interpolated_values <- approx(x = time_points, y = df$speed, xout = regular_time
 lsp_result <- periodogram(
   cbind(regular_time_grid,interpolated_values),
   demean=T,
+  detrend=T,
   background=1,
+  bc=1,
+  pl=2,
+  verbose=T,
+  genplot=T,
   output=1
 )
 
