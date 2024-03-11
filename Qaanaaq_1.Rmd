@@ -18,6 +18,10 @@ library(ggplot2)
 library(ggmap)
 library(parallel)
 library(sf)
+if (!requireNamespace("astrochron", quietly = TRUE)) {
+  install.packages("astrochron")
+}
+library(astrochron)
 #
 df <- read.csv("DATA/EXB_csv.csv",sep=",",header=T)
 parsed_date <- strptime(df$DateTime.UTC..YYMMDDHHmmss., format="%Y-%m-%dT%H:%M:%S")
@@ -26,6 +30,13 @@ df$POSIX <- as.POSIXct(parsed_date) #,tz="UTC")
 df <- df[,-3]
 #
 plot(df$Long,df$Lat)
+# length of series in hours
+len_h <- difftime(max(df$POSIX),min(df$POSIX),units = "hour")
+# expected resolution
+HWFM <- (1/as.numeric(len_h)) # in freq units
+# width 
+half_width_24 <- (1/(1/24+HWFM) - 24)/2 # in period units (hours, here)
+half_width_5p6 <- (1/(1/5.63+HWFM) - 5.63)/2 # in period units (hours, here)
 ```
 
 
@@ -50,8 +61,10 @@ northings <- transformed_points@coords[,2]
 # Create a data frame with the eastings and northings
 df$easting <- eastings
 df$northings <- northings
-#
 plot(df$easting/1000,df$northings/1000,asp=1,xlab="Easting [km]",ylab="Northing [km]",pch=19,cex=0.1)
+idx <- 8000:11000
+points(df$easting[idx]/1000,df$northings[idx]/1000,pch=19,cex=0.1,col=day(df$POSIX))
+plot(df$easting[idx],df$northings[idx],type="b",col=day(df$POSIX),pch=19,main="14 days - colour = day of month",xlab="Easting",ylab="Northing")
 ```
 ## Why the positive Easting??
 Because UTM zone 19X has 'its meridian' at 108 degrees west ....
@@ -65,8 +78,8 @@ for (i in 1:(nrow(df)-1))
 {
   d_easting <- df$easting[i+1]-df$easting[i]
   d_northing <- df$northings[i+1]-df$northings[i]
-  d_easting <- abs(d_easting)
-  d_northing <- abs(d_northing)
+  d_easting <- (d_easting)
+  d_northing <- (d_northing)
   dr <- sqrt((d_easting)^2+(d_northing)^2)
   dt <- as.numeric(df$POSIX[i+1]-df$POSIX[i])
   speed <- c(speed,dr/dt)
@@ -84,9 +97,24 @@ df$v <- v
 # plots
 ```{r}
 plot(df$POSIX,df$speed,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
-plot(df$POSIX,df$u,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="u-speed [m/s]")
-plot(df$POSIX,df$v,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="v-speed [m/s]")
+points(df$POSIX[idx],df$speed[idx],pch=19,cex=0.1,col=day(df$POSIX))
+uv_ran <- c(-2.5,1)
+plot(df$POSIX,df$u,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="abs u-speed [m/s]",ylim=uv_ran)
+points(df$POSIX[idx],df$u[idx],pch=19,cex=0.1,col=day(df$POSIX))
+plot(df$POSIX,df$v,pch=19,cex=0.1,main="EXB bouy at Qaanaaq 2024",ylab="abs v-speed [m/s]",ylim=uv_ran)
+points(df$POSIX[idx],df$v[idx],pch=19,cex=0.1,col=day(df$POSIX))
+#
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="EXB bouy at Qaanaaq 2024",ylab="v-speed [m/s]",col=hour(df$POSIX[idx]),xlab="u-speed [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+abline(h=0)
+abline(v=0)
+disp_u <- round(sd(df$u[idx]),3)
+disp_v <- round(sd(df$v[idx]),3)
+legend("topright",legend=c(paste("sd(u)",disp_u),paste("sd(v)",disp_v)))
 ```
+
+## Comment
+The northing speed dispersion is greater than the easting dispersion - more 
+
 
 # Scargle periodogram
 ```{r}
@@ -100,10 +128,10 @@ test_signal <- sin(2*pi/test_period_in_hours*df$hours)*0.0 #0.005
 ls_periodogram <- lsp(cbind(df$hours, df$speed-mean(df$speed)+test_signal), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
 # u
 # Compute Lomb-Scargle periodogram
-ls_periodogram_u <- lsp(cbind(df$hours, df$u-mean(df$u)), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
+ls_periodogram_u <- lsp(cbind(df$hours, abs(df$u-mean(df$u))), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
 # v
 # Compute Lomb-Scargle periodogram
-ls_periodogram_v <- lsp(cbind(df$hours, df$v-mean(df$v)), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
+ls_periodogram_v <- lsp(cbind(df$hours, abs(df$v-mean(df$v))), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
 # test signal
 test_period_in_hours <- 6.3
 test_signal <- sin(2*pi/test_period_in_hours*df$hours)*0.001
@@ -140,6 +168,8 @@ lines(ls_periodogram_u$scanned, ls_periodogram_u$power,col=2,lwd=2)
 lines(ls_periodogram_v$scanned, ls_periodogram_v$power,col=4,lwd=2)
 
 plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(21,25),ylim=c(0,0.007),log="x")
+abline(v=24+half_width_24,lty=3)
+abline(v=24-half_width_24,lty=3)
 abline(v=test_period_in_hours,col=2,lwd=1)
 abline(v=24,col=2,lwd=1)
 abline(v=12,col=2,lwd=1)
@@ -151,6 +181,9 @@ lines(ls_periodogram_u$scanned, ls_periodogram_u$power,col=2,lwd=2)
 lines(ls_periodogram_v$scanned, ls_periodogram_v$power,col=4,lwd=2)
 
 plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(5.5,5.75),ylim=c(0,0.004),log="x")
+abline(v=5.6299+half_width_5p6,lty=3)
+abline(v=5.6299-half_width_5p6,lty=3)
+
 abline(v=test_period_in_hours,col=2,lwd=1)
 abline(v=5.6299,col=2,lwd=1)
 abline(h=ls_periodogram$sig.level,col="green",lty=3,lwd=2)
@@ -167,6 +200,38 @@ dev.off()
 There is a strong speed signal at 24 hours - mainly due to a strong northing speed. This implies a north-south oscillating motion.
 
 
+# consider the phase
+```{r}
+# Example data (replace this with your actual time series)
+#set.seed(123)
+
+time_points <- difftime(df$POSIX,min(df$POSIX),units = "hour")
+regular_time_grid <- seq(min(time_points), max(time_points), length.out = (max(time_points)-min(time_points))*6)
+
+interpolated_values <- approx(x = time_points, y = df$speed, xout = regular_time_grid)$y
+
+
+# Compute Lomb-Scargle periodogram with phase using astrochron
+lsp_result <- periodogram(
+  cbind(regular_time_grid,interpolated_values),
+  demean=T,
+  background=1,
+  output=1
+)
+
+# Extract frequency, amplitude, and phase
+frequency <- lsp_result$Frequency
+amplitude <- lsp_result$Amplitude
+power <- lsp_result$Power
+phase <- lsp_result$Phase
+
+# Plot the Lomb-Scargle periodogram
+plot(1/frequency, power, type = "b", xlab = "1/Frequency", ylab = "Power", col = "blue", lty = 1, xlim=c(21,26))
+
+# Optionally, plot the phase information
+plot(1/frequency, phase, type = "b", xlab = "1/Frequency", ylab = "Phase", col = "red", lty = 1, xlim=c(21,26))
+
+```
 
 
  
