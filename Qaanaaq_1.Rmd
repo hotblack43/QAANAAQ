@@ -37,7 +37,7 @@ parsed_date <- strptime(df$DateTime.UTC..YYMMDDHHmmss., format="%Y-%m-%dT%H:%M:%
 df$POSIX <- as.POSIXct(parsed_date) #,tz="UTC")
 df <- df[,-3]
 #
-plot(df$Long,df$Lat)
+plot(df$Long,df$Lat,pch=19,cex=0.2)
 # length of series in hours
 len_h <- difftime(max(df$POSIX),min(df$POSIX),units = "hour")
 # expected resolution
