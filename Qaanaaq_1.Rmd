@@ -12,7 +12,7 @@ TODO:
 a) split series into shorter bits and see if the spectrum changes
 
 
- 
+
 ```{r}
 rm(list=ls())
 setwd("~/WORKSHOP/QAANAAQ/")
@@ -26,6 +26,7 @@ library(ggplot2)
 library(ggmap)
 library(parallel)
 library(sf)
+library(e1071)
 if (!requireNamespace("astrochron", quietly = TRUE)) {
   install.packages("astrochron")
 }
@@ -73,10 +74,12 @@ df$northings <- northings
 plot(df$easting/1000,df$northings/1000,asp=1,xlab="Easting [km]",ylab="Northing [km]",pch=19,cex=0.1)
 idx <- 8000:11000
 points(df$easting[idx]/1000,df$northings[idx]/1000,pch=19,cex=0.1,col=day(df$POSIX))
-plot(df$easting[idx],df$northings[idx],type="b",col=day(df$POSIX),pch=19,main="14 days - colour = day of month",xlab="Easting",ylab="Northing")
+plot(df$easting[idx],df$northings[idx],type="b",col=day(df$POSIX),pch=19,main="14 days - colour = day of month",xlab="Easting",ylab="Northing",cex=0.4)
 ```
 ## Why the positive Easting??
 Because UTM zone 19X has 'its meridian' at 108 degrees west ....
+
+Note: There is a tendency for the points each day to start in the Northa nd then as time passes (right to left) the points drift South.
 
 # calculate speeds between points observed
 ```{r}
@@ -247,5 +250,76 @@ plot(1/frequency, phase, type = "b", xlab = "1/Frequency", ylab = "Phase", col =
 
 ```
 
+# Define function to perform Lomb-Scargle with user options
+```{r}
+lsp_pth <-
+  function(x_orig,
+           y_orig,
+           type_str = 'period',
+           ofac = 1,
+           ifwindow = 'none',
+           from = .5,
+           to = 29,
+           if_test = FALSE,
+           test_signal_period=5.5)
+  {
+    # echo inputs
+    print(paste("length of x and y :",length(x_orig),length(y_orig)))
+    # type_str    :  'period' or 'frequency'
+    x <- x_orig
+    y <- y_orig - mean(y_orig, na.omit = T)
+    # apply window
+    if (ifwindow == 'Hanning') {
+      win <- hanning.window(length(y_orig))
+      y <- y * win
+    }
+    # add test_signal if required
+    if (if_test){
+      testsignal <- 0.01*sin(2*pi/test_signal_period*x)
+      y <- y + testsignal
+      print(paste("Added a test signal at period ",test_signal_period))
+    }
+    lsp_out <-
+      lsp(
+        cbind(x, y),
+        fit.sin = TRUE,
+        type = type_str,
+        from = from,
+        to = to,
+        ofac = ofac
+      )
+    return(list(
+      'freq_or_period' = lsp_out$scanned,
+      'power' = lsp_out$power
+    ))
+  }
+```
 
- 
+```{r}
+idx <- 1:(nrow(df)/2)
+type_str <- 'period'
+out1 <- lsp_pth(df$hours[idx], df$speed[idx],type_str,ofac=8,if_test=F,test_signal_period=20,ifwindow="Hanning")
+#
+idx <- (nrow(df)/2):nrow(df)
+out2 <- lsp_pth(df$hours[idx], df$speed[idx],type_str,ofac=8,if_test=F,test_signal_period=20,ifwindow="Hanning")
+#
+xlab_str <- "f [1/hours]"
+if (type_str == 'period'){xlab_str='Period [hours]'}
+
+plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(10,25))
+lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=3,xlim=c(10,25))
+abline(v=12.41666,col=4,lty=3,lwd=3)
+abline(v=24,col=4,lty=3,lwd=3)
+#
+plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(5,11))
+lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=3,xlim=c(5,11))
+#
+plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(2,6))
+lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=1.7,xlim=c(2,6))
+#
+plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(.5,2.1))
+lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=1.7,xlim=c(.5,2.1))
+
+
+```
+
