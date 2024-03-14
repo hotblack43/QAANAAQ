@@ -295,6 +295,7 @@ lsp_pth <-
   }
 ```
 
+# calculation
 ```{r}
 idx <- 1:(nrow(df)/2)
 type_str <- 'period'
@@ -303,9 +304,16 @@ out1 <- lsp_pth(df$hours[idx], df$speed[idx],type_str,ofac=8,if_test=F,test_sign
 idx <- (nrow(df)/2):nrow(df)
 out2 <- lsp_pth(df$hours[idx], df$speed[idx],type_str,ofac=8,if_test=F,test_signal_period=20,ifwindow="Hanning")
 #
+```
+
+
+# Plots
+```{r}
 xlab_str <- "f [1/hours]"
 if (type_str == 'period'){xlab_str='Period [hours]'}
-
+#
+pdf("FIGURES/spectra_2.pdf")
+par(mfrow=c(2,1))
 plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(10,25))
 lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=3,xlim=c(10,25))
 abline(v=12.41666,col=4,lty=3,lwd=3)
@@ -319,7 +327,7 @@ lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=1.7,xlim=c(2,6))
 #
 plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(.5,2.1))
 lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=1.7,xlim=c(.5,2.1))
-
+dev.off()
 
 ```
 
