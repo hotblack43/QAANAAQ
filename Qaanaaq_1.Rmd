@@ -72,9 +72,12 @@ northings <- transformed_points@coords[,2]
 df$easting <- eastings
 df$northings <- northings
 plot(df$easting/1000,df$northings/1000,asp=1,xlab="Easting [km]",ylab="Northing [km]",pch=19,cex=0.1)
-idx <- 8000:11000
+idx <- 6000:12500
 points(df$easting[idx]/1000,df$northings[idx]/1000,pch=19,cex=0.1,col=day(df$POSIX))
 plot(df$easting[idx],df$northings[idx],type="b",col=day(df$POSIX),pch=19,main="14 days - colour = day of month",xlab="Easting",ylab="Northing",cex=0.4)
+#
+points(df$easting[idx]/1000,df$northings[idx]/1000,pch=19,cex=0.1,col=day(df$POSIX))
+plot(df$easting[idx],df$northings[idx],type="b",col=hour(df$POSIX),pch=19,main="14 days - colour = hour",xlab="Easting",ylab="Northing",cex=0.4)
 ```
 ## Why the positive Easting??
 Because UTM zone 19X has 'its meridian' at 108 degrees west ....
@@ -146,7 +149,7 @@ ls_periodogram_u <- lsp(cbind(df$hours, abs(df$u-mean(df$u))), fit.sin = TRUE, t
 ls_periodogram_v <- lsp(cbind(df$hours, abs(df$v-mean(df$v))), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
 # test signal
 test_period_in_hours <- 6.3
-test_signal <- sin(2*pi/test_period_in_hours*df$hours)*0.001
+test_signal <- sin(2*pi/test_period_in_hours*df$hours)*0.0001
 ls_periodogram_test <- lsp(cbind(df$hours, test_signal), fit.sin = TRUE, type="period",   from=2, to = 29, ofac=8)
 ```
 
