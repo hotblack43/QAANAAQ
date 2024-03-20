@@ -108,24 +108,34 @@ v <- c(v,NA)
 df$speed <- speed
 df$u <- u
 df$v <- v
+#
+df <- na.omit(df)
 ```
 
 # plots
 ```{r}
-plot(df$POSIX,df$speed,pch=19,cex=0.1,main="OMB bouy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
+plot(df$POSIX,df$speed,pch=19,cex=0.1,main="OMB buoy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
 points(df$POSIX[idx],df$speed[idx],pch=19,cex=0.1,col=day(df$POSIX))
 uv_ran <- c(-2.5,1)
-plot(df$POSIX,df$u,pch=19,cex=0.1,main="OMB bouy at Qaanaaq 2024",ylab="abs u-speed [m/s]",ylim=uv_ran)
+plot(df$POSIX,df$u,pch=19,cex=0.1,main="OMB buoy at Qaanaaq 2024",ylab="abs u [m/s]",ylim=uv_ran)
 points(df$POSIX[idx],df$u[idx],pch=19,cex=0.1,col=day(df$POSIX))
-plot(df$POSIX,df$v,pch=19,cex=0.1,main="OMB bouy at Qaanaaq 2024",ylab="abs v-speed [m/s]",ylim=uv_ran)
+plot(df$POSIX,df$v,pch=19,cex=0.1,main="OMB buoy at Qaanaaq 2024",ylab="abs v [m/s]",ylim=uv_ran)
 points(df$POSIX[idx],df$v[idx],pch=19,cex=0.1,col=day(df$POSIX))
 #
-plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="OMB bouy at Qaanaaq 2024",ylab="v-speed [m/s]",col=hour(df$POSIX[idx]),xlab="u-speed [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="OMB buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
 abline(h=0)
 abline(v=0)
 disp_u <- round(sd(df$u[idx]),3)
 disp_v <- round(sd(df$v[idx]),3)
 legend("topright",legend=c(paste("sd(u)",disp_u),paste("sd(v)",disp_v)))
+png("FIGURES/veldisp_OMB.png")
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="OMB buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+abline(h=0)
+abline(v=0)
+disp_u <- round(sd(df$u[idx]),3)
+disp_v <- round(sd(df$v[idx]),3)
+legend("topright",legend=c(paste("sd(u)",disp_u),paste("sd(v)",disp_v)))
+dev.off()
 ```
 
 ## Comment
@@ -294,7 +304,8 @@ lsp_pth <-
       )
     return(list(
       'freq_or_period' = lsp_out$scanned,
-      'power' = lsp_out$power
+      'power' = lsp_out$power,
+      'sig.level' = lsp_out$sig.level
     ))
   }
 ```
@@ -322,6 +333,8 @@ plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power
 lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=3,xlim=c(10,25))
 abline(v=12.41666,col=4,lty=3,lwd=3)
 abline(v=24,col=4,lty=3,lwd=3)
+abline(h=out1$sig.level,lty=2,lwd=3,col="green")
+#abline(h=out2$sig.level,lty=2,lwd=3,col="blue")
 #
 plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(5,11))
 lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=3,xlim=c(5,11))
