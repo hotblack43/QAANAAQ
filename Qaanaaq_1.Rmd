@@ -9,7 +9,7 @@ output:
 
 TODO:
 
-a) split series into shorter bits and see if the spectrum changes
+a) 
 
 
 
@@ -125,6 +125,14 @@ abline(v=0)
 disp_u <- round(sd(df$u[idx]),3)
 disp_v <- round(sd(df$v[idx]),3)
 legend("topright",legend=c(paste("sd(u)",disp_u),paste("sd(v)",disp_v)))
+png("FIGURES/veldisp_EXB.png")
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="EXB bouy at Qaanaaq 2024",ylab="v-speed [m/s]",col=hour(df$POSIX[idx]),xlab="u-speed [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+abline(h=0)
+abline(v=0)
+disp_u <- round(sd(df$u[idx]),3)
+disp_v <- round(sd(df$v[idx]),3)
+legend("topright",legend=c(paste("sd(u)",disp_u),paste("sd(v)",disp_v)))
+dev.off()
 ```
 
 ## Comment
