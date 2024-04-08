@@ -10,7 +10,7 @@ output:
 rm(list=ls())
 setwd("~/WORKSHOP/QAANAAQ/")
 library(readxl)
-library(openxlsx)
+#library(openxlsx)
 library(lubridate)
 #
 df <- as.data.frame(read_excel('DATA/Windspeed.xlsx'))

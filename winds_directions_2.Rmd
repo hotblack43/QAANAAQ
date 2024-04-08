@@ -51,7 +51,7 @@ for (imo in unique(df$month))
   dist_Mel <- df$Melville2022[idx]
   dist_Tra <- df$Tracy2022[idx]
   #
-  tstr <- paste("Wind speeds for hour, month = ",ihour,imo)
+  tstr <- paste("Wind directions for hour, month = ",ihour,imo)
 #  plot(hist(dist_Far),col=2,main=tstr,xlab="Speed [m/s]",ylab="hist",xlim=c(-pi,pi))
 #  lines(hist(dist_Mel),col=3)
 #  lines(hist(dist_Tra),col=4)     
@@ -64,20 +64,20 @@ for (imo in unique(df$month))
 colnames(linjen) <- c("Hour","Month","p_Far_Mel","p_Far_Tra","p_Mel_Tra")
 ```
 
-# Are the p values consistent with 'speeds are drawn from same pop?'
+# Are the p values consistent with 'directions are drawn from same pop?'
 ```{r}
 # testing pairs of distributions at a given critical p value
 p_lim <- 0.05
 idx <- which(linjen$p_Far_Mel > p_lim)
-print(paste("There are ",length(idx)," situations where Farquar and Melville speeds could be drawn from same distribution. p_crit = ",p_lim))
+print(paste("There are ",length(idx)," situations where Farquar and Melville directions could be drawn from same distribution. p_crit = ",p_lim))
 print(linjen[idx,c(1,2)])
 #
 idx <- which(linjen$p_Far_Tra > p_lim)
-print(paste("There are ",length(idx)," situations where Farquar and Tracy speeds could be drawn from same distribution. p_crit = ",p_lim))
+print(paste("There are ",length(idx)," situations where Farquar and Tracy directions could be drawn from same distribution. p_crit = ",p_lim))
 print(linjen[idx,c(1,2)])
 #
 idx <- which(linjen$p_Mel_Tra > p_lim)
-print(paste("There are ",length(idx)," situations where Melville and Tracy speeds could be drawn from same distribution. p_crit = ",p_lim))
+print(paste("There are ",length(idx)," situations where Melville and Tracy directions could be drawn from same distribution. p_crit = ",p_lim))
 print(linjen[idx,c(1,2)])
 ```
 
