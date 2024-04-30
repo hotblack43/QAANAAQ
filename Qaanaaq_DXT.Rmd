@@ -114,22 +114,22 @@ df <- na.omit(df)
 
 # plots
 ```{r}
-plot(df$POSIX,df$speed,pch=19,cex=0.1,main="OMB buoy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
+plot(df$POSIX,df$speed,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
 points(df$POSIX[idx],df$speed[idx],pch=19,cex=0.1,col=day(df$POSIX))
 uv_ran <- c(-2.5,1)
-plot(df$POSIX,df$u,pch=19,cex=0.1,main="OMB buoy at Qaanaaq 2024",ylab="abs u [m/s]",ylim=uv_ran)
+plot(df$POSIX,df$u,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2024",ylab="abs u [m/s]",ylim=uv_ran)
 points(df$POSIX[idx],df$u[idx],pch=19,cex=0.1,col=day(df$POSIX))
-plot(df$POSIX,df$v,pch=19,cex=0.1,main="OMB buoy at Qaanaaq 2024",ylab="abs v [m/s]",ylim=uv_ran)
+plot(df$POSIX,df$v,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2024",ylab="abs v [m/s]",ylim=uv_ran)
 points(df$POSIX[idx],df$v[idx],pch=19,cex=0.1,col=day(df$POSIX))
 #
-plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="OMB buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="DXT buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
 abline(h=0)
 abline(v=0)
 disp_u <- round(sd(df$u[idx]),3)
 disp_v <- round(sd(df$v[idx]),3)
 legend("topright",legend=c(paste("sd(u)",disp_u),paste("sd(v)",disp_v)))
-png("FIGURES/veldisp_OMB.png")
-plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="OMB buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+png("FIGURES/veldisp_DXT.png")
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="DXT buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
 abline(h=0)
 abline(v=0)
 disp_u <- round(sd(df$u[idx]),3)
@@ -167,7 +167,7 @@ ls_periodogram_test <- lsp(cbind(df$hours, test_signal), fit.sin = TRUE, type="p
 
 # plots
 ```{r}
-pdf("FIGURES/OMB_spectra.pdf")
+pdf("FIGURES/DXT_spectra.pdf")
 par(mfrow=c(3,1))
 plot(ls_periodogram$scanned, ls_periodogram$power, type = 'l', xlab = 'Period [hours]', ylab = 'Power in speed', xlim=c(2,29),ylim=c(0,0.004),log="x")
 #abline(v=test_period_in_hours,col=2,lwd=1)
@@ -327,7 +327,7 @@ out2 <- lsp_pth(df$hours[idx], df$speed[idx],type_str,ofac=8,if_test=F,test_sign
 xlab_str <- "f [1/hours]"
 if (type_str == 'period'){xlab_str='Period [hours]'}
 #
-pdf("FIGURES/OMB_spectra_2.pdf")
+pdf("FIGURES/DXT_spectra_2.pdf")
 par(mfrow=c(2,1))
 plot(out1$freq_or_period,out1$power,col='red',type="l",xlab=xlab_str,ylab="Power",main="First and second half of interval",lwd=3,xlim=c(10,25))
 lines(out2$freq_or_period,out2$power,col='blue',type="l",lwd=3,xlim=c(10,25))
