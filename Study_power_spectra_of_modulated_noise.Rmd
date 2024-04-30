@@ -1,0 +1,63 @@
+---
+title: "R Notebook"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+Introduction
+
+Study the power spectra of noise modulated by something periodic.
+
+SETUP
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+```
+
+
+
+Define function to make power spectra
+
+```{r}
+pth_spec <- function(data)
+{
+  time <- data[, 1]
+  signal <- data[, 2]
+  
+# Calculate the power spectrum using the FFT
+fft_result <- abs(fft(signal)) ^ 2 / length(signal)
+half_length <- length(fft_result) %/% 2  # Get the index for the first half
+frequencies <- seq(0, 1 / (2 * diff(time)[1]), length.out = half_length)
+
+# Plot the first half of the power spectrum
+plot(1/frequencies, fft_result[1:half_length], type = "l", 
+     xlab = "1/Frequency", ylab = "Power Spectrum", 
+     main = "Power Spectrum of Time Series (First Half)",
+     log="xy", pch=19, cex=0.2)
+  
+  
+  return(list("period" = 1/frequencies, "power" = fft_result))
+}
+```
+
+
+A test example
+```{r}
+par(mfrow=c(2,1))
+n <- 10000
+x= 1:n
+period = 500
+y <- rnorm(n,0,1)
+plot(x,y,pch=19, cex=0.2)
+res <- pth_spec(cbind(x,y))
+y <- y * (1+cos(2*pi/period*x))
+plot(x,y,pch=19, cex=0.2)
+#
+res <- pth_spec(cbind(x,y))
+```
+
+
+Discussion of results
+
+Since the white noise is ... noise ... there are no dominant frequencies, hence no 'carrier frequency' f_c and so the act of modulating the WN signal with a period function (f_m) should produce side-bands at f_c +/- f_m - that is 'everywhere' - leading to a spectrum with no features, probably just like the original series spectrum without modulation.
