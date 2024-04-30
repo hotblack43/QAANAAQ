@@ -53,10 +53,15 @@ period = 500
 y <- rnorm(n,0,1)
 plot(x,y,pch=19, cex=0.2)
 res <- pth_spec(cbind(x,y))
+pow1 <- res$power
 y <- y * (1+cos(2*pi/period*x))
 plot(x,y,pch=19, cex=0.2)
 #
 res <- pth_spec(cbind(x,y))
+pow2 <- res$power
+par(mfrow=c(1,1))
+plot(pow1/pow2,log="y",type="l")
+abline(h=1,col=2,lwd=2)
 ```
 
 
