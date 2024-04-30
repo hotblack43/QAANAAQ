@@ -1,0 +1,119 @@
+---
+title: "Bird reader 1.Rmd"
+format: html
+editor: visual
+---
+
+## *Quarto*
+
+*read all data for all years from the excel file provided April 25 2024.*
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(readxl)
+#
+sheetname <- "DATA/All_birds_all_points.xlsx"
+```
+
+*Read data from excel, with tabs for years*
+
+```{r}
+# Specify the file path
+file_path <- sheetname
+desired_varnames <- c("Timestamp_UTC", "Latitude", "Longitude")
+# List the named tabs in the Excel file
+tab_names <- excel_sheets(file_path)
+# split the tab names
+# Extract word and year separately
+words <- sub("\\d+$", "", tab_names)  # Extract word by removing digits at the end
+years <- as.integer(sub(".*?(\\d+)$", "\\1", tab_names))  # Extract year using
+words <- unique(words) 
+years <- unique(years)
+# Print the extracted words and years
+print(words)
+print(years)
+# Initialize an empty list to store data frames for each word
+word_data_list <- list()
+
+# Loop over the tab names
+for (iword in words) {
+  # Initialize an empty data frame to store data for the current word
+  word_data <- NULL
+  
+  for (iyear in years) {
+    # Construct the sheet name
+    desired_sheet <- paste0(iword, iyear)
+    print(desired_sheet)
+    
+    # Read data from the specific named tab
+    data <- read_excel(file_path, sheet = desired_sheet)
+    
+    # Assuming `desired_varnames` contains the names of the variables you want to extract
+    data <- data[, desired_varnames]
+    plot(data$Latitude,data$Longitude,main=desired_sheet)
+    # Combine data into the word_data data frame
+    if (is.null(word_data)) {
+      word_data <- data
+    } else {
+      word_data <- rbind(word_data, data)
+    }
+  }
+  
+  # Add the combined data for the current word to the list
+  word_data_list[[iword]] <- word_data
+}
+
+# After the loop, you will have a list `word_data_list` containing combined data frames for each word
+# You can access each combined data frame using the word as the list index, e.g., word_data_list[["Edder"]]
+
+# save it
+saveRDS(word_data_list,file="OUTPUT/birds_2022_2023.rds")
+
+```
+
+```{r}
+# Initialize empty vectors to store all latitudes and longitudes
+all_latitudes <- c()
+all_longitudes <- c()
+
+# Loop over the list of data frames
+for (iword in words) {
+  # Extract latitude and longitude columns from the data frame for the current word
+  latitudes <- word_data_list[[iword]]$Latitude
+  longitudes <- word_data_list[[iword]]$Longitude
+  
+  # Combine latitude and longitude values into the vectors
+  all_latitudes <- c(all_latitudes, latitudes)
+  all_longitudes <- c(all_longitudes, longitudes)
+}
+
+# Calculate min and max longitude and latitude from the complete dataset
+min_longitude <- min(na.omit(all_longitudes))
+max_longitude <- max(na.omit(all_longitudes))
+min_latitude <- min(na.omit(all_latitudes))
+max_latitude <- max(na.omit(all_latitudes))
+
+# Initialize an empty plot
+plot(NULL, xlim = c(min_longitude, max_longitude), ylim = c(min_latitude, max_latitude), 
+     xlab = "Longitude", ylab = "Latitude", main = "Latitude vs Longitude")
+
+# Loop over the list of data frames
+for (iword in words) {
+  # Extract latitude and longitude columns from the data frame for the current word
+  latitudes <- word_data_list[[iword]]$Latitude
+  longitudes <- word_data_list[[iword]]$Longitude
+  
+  # Plot latitude against longitude with a different color for each series
+  points(longitudes, latitudes, col = rainbow(length(words))[which(words == iword)], pch = 19, cex=0.1)
+}
+
+# Add a legend
+legend("bottomleft", legend = words, col = rainbow(length(words)), pch = 19, cex = 0.8)
+
+```
+
+```{}
+```
+
+*The `echo: false` option disables the printing of code (only output is displayed).*
