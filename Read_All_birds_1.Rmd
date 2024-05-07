@@ -14,6 +14,7 @@ setwd("~/WORKSHOP/QAANAAQ/")
 library(readxl)
 #
 sheetname <- "DATA/All_birds_all_points.xlsx"
+sheetname <- "DATA/TRUSTED_and_OMBedited.xlsx"
 ```
 
 *Read data from excel, with tabs for years*
@@ -21,7 +22,7 @@ sheetname <- "DATA/All_birds_all_points.xlsx"
 ```{r}
 # Specify the file path
 file_path <- sheetname
-desired_varnames <- c("Timestamp_UTC", "Latitude", "Longitude")
+desired_varnames <- c("DateTimeUTC", "Latitude", "Longitude")
 # List the named tabs in the Excel file
 tab_names <- excel_sheets(file_path)
 # split the tab names
@@ -37,11 +38,12 @@ print(years)
 word_data_list <- list()
 
 # Loop over the tab names
-for (iword in words) {
+  for (iyear in years) {
+
   # Initialize an empty data frame to store data for the current word
   word_data <- NULL
-  
-  for (iyear in years) {
+for (iword in words) {  
+
     # Construct the sheet name
     desired_sheet <- paste0(iword, iyear)
     print(desired_sheet)
@@ -113,7 +115,7 @@ legend("bottomleft", legend = words, col = rainbow(length(words)), pch = 19, cex
 
 ```
 
-```{}
+```         
 ```
 
 *The `echo: false` option disables the printing of code (only output is displayed).*
