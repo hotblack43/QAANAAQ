@@ -32,7 +32,7 @@ if (!requireNamespace("astrochron", quietly = TRUE)) {
 }
 library(astrochron)
 #
-#df <- read.csv("DATA/EXB_csv.csv",sep=",",header=T)
+#  never ever use???? df <- read.csv("DATA/EXB_csv.csv",sep=",",header=T)
 df <- read.csv("DATA/OMB_DXT.csv",sep=",",header=T)
 parsed_date <- strptime(df$DateTime.UTC..YYMMDDHHmmss., format="%Y-%m-%dT%H:%M:%S")
 # Convert to POSIXct
@@ -114,22 +114,22 @@ df <- na.omit(df)
 
 # plots
 ```{r}
-plot(df$POSIX,df$speed,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2024",ylab="speed [m/s]",log="y")
+plot(df$POSIX,df$speed,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2023",ylab="speed [m/s]",log="y")
 points(df$POSIX[idx],df$speed[idx],pch=19,cex=0.1,col=day(df$POSIX))
 uv_ran <- c(-2.5,1)
-plot(df$POSIX,df$u,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2024",ylab="abs u [m/s]",ylim=uv_ran)
+plot(df$POSIX,df$u,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2023",ylab="abs u [m/s]",ylim=uv_ran)
 points(df$POSIX[idx],df$u[idx],pch=19,cex=0.1,col=day(df$POSIX))
-plot(df$POSIX,df$v,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2024",ylab="abs v [m/s]",ylim=uv_ran)
+plot(df$POSIX,df$v,pch=19,cex=0.1,main="DXT buoy at Qaanaaq 2023",ylab="abs v [m/s]",ylim=uv_ran)
 points(df$POSIX[idx],df$v[idx],pch=19,cex=0.1,col=day(df$POSIX))
 #
-plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="DXT buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="DXT buoy at Qaanaaq 2023",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
 abline(h=0)
 abline(v=0)
 disp_u <- round(sd(df$u[idx]),3)
 disp_v <- round(sd(df$v[idx]),3)
 legend("topright",legend=c(paste("sd(u)",disp_u),paste("sd(v)",disp_v)))
 png("FIGURES/veldisp_DXT.png")
-plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="DXT buoy at Qaanaaq 2024",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
+plot(df$u[idx],df$v[idx],pch=19,cex=0.6,main="DXT buoy at Qaanaaq 2023",ylab="v [m/s]",col=hour(df$POSIX[idx]),xlab="u [m/s]",asp=1,xlim=c(-1,1),ylim=c(-1,1))
 abline(h=0)
 abline(v=0)
 disp_u <- round(sd(df$u[idx]),3)
