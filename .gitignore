@@ -4,3 +4,8 @@
 .Ruserdata
 *.pdf 
 *.html
+include/
+share/
+SAFE/
+Trilateration_1_files/
+Trilateration_3_justMCMC_files/
