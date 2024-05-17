@@ -1,0 +1,176 @@
+---
+title: "Trilateration"
+output: 
+  pdf_document: 
+    fig_height: 7
+    fig_caption: yes
+---
+
+Trilateration for the Qaanaaq data. L-BFGS-B is able to solve the x,y location of the source.
+
+CNEOS data here: https://cneos.jpl.nasa.gov/fireballs/
+
+2018-07-25 21:55:26	76.9N	69.0W is the event as seen from space
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/CTBTO2/")
+library(nleqslv)
+library(sp)
+library(lubridate)
+library(oce)
+library(nloptr)
+library(maps)
+library(ggplot2)
+library(ggmap)
+library(parallel)
+library(sf)
+library(e1071)
+if (!requireNamespace("astrochron", quietly = TRUE)) {
+  install.packages("astrochron")
+}
+library(astrochron)
+# Load necessary libraries
+library(MCMCpack)
+# constants
+# speed of sound
+c = 343 # m/s
+c <- c/1000  # km/s
+#
+df <- read.csv("DATA/offsets.txt",header=TRUE,sep=",")
+coords <- read.csv("DATA/coordinates.txt",header=TRUE,sep=",")
+#
+# Merge the data frames by the "ID" column
+merged_df <- merge(df, coords, by = "Station", all = TRUE)
+df <- merged_df
+#
+plot(coords$Longitude,coords$Latitude,pch=4)
+text(coords$Longitude,coords$Latitude,coords$Station)
+```
+
+
+
+```{r}
+
+#
+# Create a SpatialPoints object
+points <- SpatialPoints(cbind(df$Longitude, df$Latitude), proj4string = CRS("+proj=longlat +ellps=WGS84"))
+
+# Define the target projection
+target_projection <- "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+# Transform the coordinates to the target projection
+transformed_points <- spTransform(points, CRS(target_projection))
+
+# Extract the easting and northing
+df$easting <- transformed_points@coords[,1]/1000
+df$northing <- transformed_points@coords[,2]/1000
+
+plot(df$easting ,df$northing ,asp=1,xlab="Easting [km]",ylab="Northing [km]",pch=19,cex=0.5)
+
+
+# also calculate easting and northing of known BANG position
+source <- SpatialPoints(cbind(-69.0,76.9),proj4string = CRS("+proj=longlat +ellps=WGS84"))
+# Transform the coordinates to the target projection
+transformed_points_source <- spTransform(source, CRS(target_projection))
+source_easting <- transformed_points_source@coords[,1] # in meters
+source_northing <- transformed_points_source@coords[,2]
+```
+
+#----------------------------- MCMC ----------------------------------------
+#
+```{r}
+# Define prior distributions for parameters
+prior_function <- function(parameters) {
+  # Define prior distributions for each parameter
+  # use km for eastings and northings
+  min_easting <- 0
+  max_easting <- 1000
+  min_northing <- 7000
+  max_northing <- 9000
+  min_height <- 0
+  max_height <- 100
+  min_t0 <- 0
+  max_t0 <- 500
+  if (parameters[1] < min_easting || parameters[1] > max_easting ||
+      parameters[2] < min_northing || parameters[2] > max_northing ||
+      parameters[3] < min_height || parameters[3] > max_height ||
+      parameters[4] < min_t0 || parameters[4] > max_t0) {
+    #return(-Inf)  # Return negative infinity for parameters outside plausible range
+    return(1e-17)  # Return small number for parameters outside plausible range
+  }
+  
+  # Otherwise, return logarithm of prior probability
+  return(0)  # Assuming uniform prior, so prior probability is constant
+}
+```
+#
+```{r}
+calculate_predicted_times <- function(easting, northing, height, t0, y, X)
+{
+  # Define your predicted times of hearing the BANG at the 8 different stations
+  eq1 <- t0 +  sqrt((X$V2[1] - easting)^2 + (X$V3[1] - northing)^2 + (0 - height)^2) / c
+  eq2 <- t0 +  sqrt((X$V2[2] - easting)^2 + (X$V3[2] - northing)^2 + (0 - height)^2) / c
+  eq3 <- t0 +  sqrt((X$V2[3] - easting)^2 + (X$V3[3] - northing)^2 + (0 - height)^2) / c
+  eq4 <- t0 +  sqrt((X$V2[4] - easting)^2 + (X$V3[4] - northing)^2 + (0 - height)^2) / c
+  eq5 <- t0 +  sqrt((X$V2[5] - easting)^2 + (X$V3[5] - northing)^2 + (0 - height)^2) / c
+  eq6 <- t0 +  sqrt((X$V2[6] - easting)^2 + (X$V3[6] - northing)^2 + (0 - height)^2) / c
+  eq7 <- t0 +  sqrt((X$V2[7] - easting)^2 + (X$V3[7] - northing)^2 + (0 - height)^2) / c
+  eq8 <- t0 +  sqrt((X$V2[8] - easting)^2 + (X$V3[8] - northing)^2 + (0 - height)^2) / c
+  print(c('pred times: ',round(c(eq1,eq2,eq3,eq4,eq5,eq6,eq7,eq8),2)))
+  return(c(eq1,eq2,eq3,eq4,eq5,eq6,eq7,eq8))
+  }
+```
+
+```{r}
+# Define log merit function
+log_merit_function <- function(parameters, y, X) {
+  print(c('params : ',c(round(parameters,2))))
+  # Calculate error function
+  # Extract parameters
+  easting <- parameters[1]
+  northing <- parameters[2]
+  height <- parameters[3]
+  t0 <- parameters[4]
+  # Calculate predicted arrival times
+  predicted_times <- calculate_predicted_times(easting, northing, height, t0, y, X)
+  # Calculate errors
+  errors <- y - predicted_times
+  # Calculate negative log-likelihood (sum of squared errors)
+  sigma <- c(0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05) # Assuming constant variance
+  negative_log_likelihood <- -0.5 * sum((errors / sigma)^2 + log(2 * pi * sigma^2))
+  # Calculate prior function
+  prior <- prior_function(parameters)
+  # Calculate log likelihood (assuming normal errors)
+  log_likelihood <- negative_log_likelihood  
+  # Calculate log posterior (log likelihood + log prior)
+  log_posterior <- log_likelihood + prior
+  return(log_posterior)
+}
+
+
+```
+
+
+# MCMC
+```{r}
+
+# Set up MCMC sampler
+n_iter <- 1000000  # Number of iterations
+n_burn <- 5000  # Number of burn-in iterations
+initial_guess <- c(xx = 454., yy = 8685., zz = 80, t0 = 334.)  # Initial guess
+# Set up MCMC sampler
+# Call MCMC sampling function
+y <- as.data.frame(df$t_offset)
+X <- as.data.frame(cbind(1, df$easting, df$northing))
+posterior_samples <- MCMCmetrop1R(log_merit_function, y = y, X = X, mcmc = n_iter + n_burn, thin = 1, tune=1, theta.init = initial_guess, verbose=1000) # , logfun=TRUE)
+
+par(mfrow=c(2,2))
+for (ich in 1:ncol(posterior_samples))
+{
+  plot(posterior_samples[,ich])
+  
+}
+```
+
+

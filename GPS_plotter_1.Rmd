@@ -1,0 +1,70 @@
+---
+title: "R Notebook"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+ 
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/CTBTO2/")
+library(sp)
+library(rgdal)
+#
+df <- read.csv("DATA/gps_data.txt",sep=",",header=F)
+df <- as.data.frame(df)
+colnames(df) <- c("POSIX","lon","lat")
+df$POSIX_UTC <- as.POSIXct(df$POSIX)
+idx <- which(df$lon < 100)
+df <- df[idx,]
+# download the data
+system("scp -i ~/.ssh/id_rsa pth@furthur.home:~/gps_data.txt DATA/")
+```
+
+# define lon/lat to UTM function
+```{r}
+convert_to_utm <- function(lon, lat) {
+  # Create SpatialPoints object
+  coordinates <- SpatialPoints(coords = cbind(lon, lat), proj4string = CRS("+proj=longlat +datum=WGS84"))
+  
+  # Convert to UTM (Universal Transverse Mercator) projection
+  coordinates_utm <- spTransform(coordinates, CRS("+proj=utm +zone=32 +datum=WGS84"))
+  
+  # Extract easting and northing coordinates
+  easting_northing <- coordinates_utm@coords
+  
+  return(easting_northing)
+}
+```
+
+# convert
+```{r}
+easting_northing <- convert_to_utm(df$lon, df$lat)
+colnames(easting_northing) <- c("easting","northing")
+```
+
+
+# plots
+```{r}
+plot(df$lon,df$lat,pch=19,cex=0.1)
+plot(df$POSIX_UTC,df$lon,pch=19,cex=0.1)
+plot(df$POSIX_UTC,df$lat,pch=19,cex=0.1)
+plot(easting_northing,pch=19,cex=0.1,asp=1)
+print(c('sd of easting  : ',round(sd(easting_northing[,1]),2),' m.'))
+print(c('sd of northing : ',round(sd(easting_northing[,2]),2),' m.'))
+#
+png("FIGURES/logging_lon_lat.png")
+par(mfrow=c(2,2))
+plot(df$lon,df$lat,pch=19,cex=0.1)
+plot(df$POSIX_UTC,df$lon,pch=19,cex=0.1)
+plot(df$POSIX_UTC,df$lat,pch=19,cex=0.1)
+plot(easting_northing,pch=19,cex=0.1,asp=1)
+print(c('sd of easting  : ',round(sd(easting_northing[,1]),2),' m.'))
+print(c('sd of northing : ',round(sd(easting_northing[,2]),2),' m.'))
+dev.off()
+```
+
+
+ 

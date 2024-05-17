@@ -1,0 +1,242 @@
+---
+title: "Trilateration"
+output: 
+  pdf_document: 
+    fig_height: 7
+    fig_caption: yes
+---
+
+Trilateration for the Qaanaaq data. L-BFGS-B is able to solve the x,y location of the source.
+
+CNEOS data here: https://cneos.jpl.nasa.gov/fireballs/
+
+2018-07-25 21:55:26	76.9N	69.0W is the event as seen from space
+
+```{r}
+rm(list=ls())
+#setwd("~/WORKSHOP/CTBTO2/")
+setwd("/data/users/pth/WORKSHOP/CTBTO2/")
+library(nleqslv)
+library(sp)
+library(lubridate)
+library(oce)
+library(nloptr)
+library(maps)
+library(ggplot2)
+library(ggmap)
+library(parallel)
+library(sf)
+library(e1071)
+library(astrochron)
+library(MCMCpack)
+library(GA)
+# constants
+# speed of sound
+c = 343 # m/s
+c <- c/1000  # km/s
+#
+df <- read.csv("DATA/offsets.txt",header=TRUE,sep=",")
+coords <- read.csv("DATA/coordinates.txt",header=TRUE,sep=",")
+#
+# Merge the data frames by the "ID" column
+merged_df <- merge(df, coords, by = "Station", all = TRUE)
+df <- merged_df
+#
+plot(coords$Longitude,coords$Latitude,pch=4)
+text(coords$Longitude,coords$Latitude,coords$Station)
+```
+
+
+
+```{r}
+
+#
+# Create a SpatialPoints object
+points <- SpatialPoints(cbind(df$Longitude, df$Latitude), proj4string = CRS("+proj=longlat +ellps=WGS84"))
+
+# Define the target projection
+target_projection <- "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+# Transform the coordinates to the target projection
+transformed_points <- spTransform(points, CRS(target_projection))
+
+# Extract the easting and northing
+df$easting <- transformed_points@coords[,1]/1000
+df$northing <- transformed_points@coords[,2]/1000
+
+plot(df$easting ,df$northing ,asp=1,xlab="Easting [km]",ylab="Northing [km]",pch=19,cex=0.5)
+
+
+# also calculate easting and northing of known BANG position
+source <- SpatialPoints(cbind(-69.0,76.9),proj4string = CRS("+proj=longlat +ellps=WGS84"))
+# Transform the coordinates to the target projection
+transformed_points_source <- spTransform(source, CRS(target_projection))
+source_easting <- transformed_points_source@coords[,1] # in meters
+source_northing <- transformed_points_source@coords[,2]
+```
+#
+
+```{r}
+# Define prior distributions for parameters
+prior_function <- function(parameters) {
+  # Define prior distributions for each parameter
+  # use km for eastings and northings
+  min_easting <- 0
+  max_easting <- 1000
+  min_northing <- 7000
+  max_northing <- 9000
+  min_height <- 0
+  max_height <- 100
+  min_t0 <- -500
+  max_t0 <- 0
+  if (parameters[1] < min_easting || parameters[1] > max_easting ||
+      parameters[2] < min_northing ||
+      parameters[2] > max_northing ||
+      parameters[3] < min_height || parameters[3] > max_height ||
+      parameters[4] < min_t0 || parameters[4] > max_t0) {
+    return(-300)  # Return negative number
+  }
+  # Otherwise, return 0 - assuming the prior gives log(p)
+  return(0)
+}
+```
+
+
+#
+```{r}
+calculate_predicted_times <-
+  function(easting, northing, height, t0, y, X, c) {
+    # Initialize a vector to store the predicted times
+    predicted_times <- numeric(8)
+    # Calculate predicted times for each station
+    for (i in 1:8) {predicted_times[i] <- t0 + sqrt((X$V2[i] - easting) ^ 2 + (X$V3[i] - northing) ^ 2 + (0 - height) ^2) / c }
+    
+    return(predicted_times)
+  }
+
+```
+
+
+
+```{r}
+# Define log merit function
+log_merit_function <- function(parameters, y, X) {
+  print(c('params : ',c(round(parameters,2))))
+  # Calculate error function
+  # Extract parameters
+  easting <- parameters[1]
+  northing <- parameters[2]
+  height <- parameters[3]
+  t0 <- parameters[4]
+  # Calculate predicted arrival times
+  predicted_times <- calculate_predicted_times(easting, northing, height, t0, y, X, c)
+  # Calculate errors
+  errors <- y - predicted_times
+  # Calculate negative log-likelihood (sum of squared errors)
+  sigma <- c(0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05)*1.2 # Assuming constant variance
+  negative_log_likelihood <- -0.5 * sum((errors / sigma)^2) # + log(2 * pi * sigma^2))
+  # Calculate prior function
+  neg_log_prior <- prior_function(parameters) # this should return -log(prior)
+  # Calculate log likelihood (assuming normal errors)
+  #log_likelihood <- negative_log_likelihood  
+  # Calculate log posterior (log likelihood + log prior)
+  log_posterior <- negative_log_likelihood + neg_log_prior
+  return(log_posterior)
+}
+```
+
+```{r}
+# Define the objective function (negative log posterior)
+objective_function <- function(parameters, y, X) {
+  # Calculate log posterior using your existing log_merit_function
+  log_posterior <- log_merit_function(parameters, y, X)
+  return(log_posterior)  # Return negative log posterior for minimization
+}
+```
+
+
+```{r}
+
+
+# Define bounds for the parameters
+lower_bound <- c(200, 7000, 10, -500)
+upper_bound <- c(800, 9000, 100, -100)
+
+
+
+# Set up GA parameters
+ga_parameters <- list(type = "real-valued",
+                      fitness = objective_function,
+                      lower = lower_bound,
+                      upper = upper_bound,
+                      popSize = 150,  # Population size
+                      pcrossover = 0.8,  # Crossover probability
+                      pmutation = 0.1,   # Mutation probability
+                      maxiter = 1000)  # Number of generations
+y <- as.data.frame(df$t_offset)
+X <- as.data.frame(cbind(1, df$easting, df$northing))
+
+# Run the genetic algorithm
+result <- ga(type = ga_parameters$type,
+              fitness = ga_parameters$fitness,
+              lower = ga_parameters$lower,
+              upper = ga_parameters$upper,
+              popSize = ga_parameters$popSize,
+              pcrossover = ga_parameters$pcrossover,
+              pmutation = ga_parameters$pmutation,
+              maxiter = ga_parameters$maxiter,
+              y = y,
+              X = X)
+
+# Extract the optimal solution
+optimal_solution <- result@solution
+
+print(optimal_solution)
+
+# Calculate the residuals in observing times
+ 
+med_easting <- round(optimal_solution[1,1],2)
+med_northing <- round(optimal_solution[1,2],2)
+med_height <- round(optimal_solution[1,3],2)
+med_t0 <- round(optimal_solution[1,4],2)
+sd_easting <- round(sd(result@population[,1]),2)
+sd_northing <- round(sd(result@population[,2]),2)
+sd_height <- round(sd(result@population[,3]),2)
+sd_time <- round(sd(result@population[,4]),2)
+#
+print(c('GA optimal solution     : ',med_easting,med_northing,med_height,med_t0))
+print(c('GA optimal solution +/- : ',sd_easting,sd_northing,sd_height,sd_time))
+pred_times <- calculate_predicted_times(med_easting,med_northing,med_height,med_t0,y,X,c)
+print(c('Predicted times from median parameter values: ',pred_times))
+residuals <- df$t_offset - pred_times
+print(c('Residuals: ',residuals,' s. RMSE = ',sqrt(sum(residuals^2)),' s.'))
+```
+
+# from easting/northing to lon/lat
+```{r}
+sol_easting <- med_easting*1000
+sol_northing <- med_northing*1000
+
+
+# Create a SpatialPoints object with easting/northing coordinates
+points <- SpatialPoints(cbind(sol_easting, sol_northing), proj4string = CRS("+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+
+# Define the source projection
+source_projection <- CRS("+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+
+# Define the target projection
+target_projection <- CRS("+proj=longlat +datum=WGS84")
+
+# Transform the coordinates to longitude/latitude
+transformed_points <- spTransform(points, target_projection)
+
+# Extract the longitude and latitude
+lonlat <- coordinates(transformed_points)
+
+# Print the result
+print(c("GA solution for lon/lat : ",lonlat))
+
+```
+
+
+

@@ -1,0 +1,213 @@
+﻿#====================================================================
+# PMCC General parameters 
+#====================================================================
+
+# --- Parfile version
+VersionPMCC=6.4.0
+
+# --- Input data (file/db)
+InputMode=file
+
+# --- Output data (file/db)
+OutputMode=file
+
+# --- Input parameters
+# site information if InputMode=file or db
+# - database SITE table (if InputMode=db)
+# - or XML site file (if InputMode=file)
+in-site-table=site.xml
+
+# Information about waveform datafile (only if InputMode=file)
+in-DataFile=pmcc_example_datafile.xml
+
+# Database table name (only if InputMode=db)
+in-sensor-table=sensor
+in-sitechan-table=sitechan
+in-affiliation-table=affiliation
+in-instrument-table=instrument
+in-wfdisc-table=wfdisc
+in-assoc-table=assoc
+in-origin-table=origin
+
+# --- Output parameters
+
+#Result directory
+out-OutputDir=output
+
+# File containing the PMCC detection pixels 
+# Possible options:
+# %sta: station name
+# %yyyy: year
+# %mm: month
+# %dd: day
+# %hh: hour
+# %etime: unix time
+out-DetPixFile=pmcc_example.cdf
+
+# Database table name (only if OutputMode=db)
+out-arrival-table=arrival
+out-detection-table=detection
+out-pmcc_features-table=pmcc_features
+out-amplitude-table=amplitude
+out-dervdisc-table=dervdisc
+
+
+#====================================================================
+# Non Frequency-dependent parameters 
+#====================================================================
+
+# --- DETECTION PARAMETERS
+ 
+# Pre-processing time shift on data channels 
+# normal processing w/o time shift (Flagshift=0), 
+# fine processing using time shift (Flagshift=1)
+# Specify speed and azimuth values when time shift is applied
+Flagshift=0
+Shift_speed=0
+Shift_azimuth=0
+
+# Number of PMCC subnetworks to be processed 
+NbSubNet=3
+
+# Pre-processing channel summation 
+# normal processing w/o summation ( FlagPreproc=0)
+# apply summation (FlagPreproc=1)
+FlagPreproc=0
+
+# Apply signal deconvolution using instrument response of sensors 
+# no deconvolution (FlagDeconvolution=0)
+# apply deconvolution (FlagDeconvolution=1)
+FlagDeconvolution=0
+
+# Take into account station altitude (Apply 3D algorithm)
+# do not apply 3D algorithm (FlagPMCC3D=0)
+# apply 3D algorithm (FlagPMCC3D=1)
+# specifiy sound speed (km/s) at the ground level if FlagPMCC3D=1
+FlagPMCC3D=0
+SoundSpeed=0.34
+
+# Duration of a signal flat to be considered long (s)
+InterpolatedDataGaps=0.5
+
+# Fstat computation for all pixels 
+# Do not compute Fstat for pixels (Compute_fstat=0) 
+# Compute Fstat for pixels (Compute_fstat=1)
+Compute_fstat=0
+
+
+# --- FAMILY PARAMETERS
+
+# Family grouping algorithm
+# Use Euclidian distance (=dist), or strict comparison (=strict)
+GroupingAlgo=dist
+
+# Minimum speed value (km/s) to apply the second set of threshold values (Az2_tol,Sp2_tol)
+Speed_transition=1.0
+
+
+# Computation of detection onset
+# A beam trace weighted by coherence tapering window is built to pick arrivals
+# Powpond factor [0.0-1.0] is applied to give more or less weight to coherence 
+# NLISS is the number of points used for smoothing the coherence tapering window
+# Picking is based on STA/LTA ratio
+TSTA=2.0
+TLTA=10.0
+ThreshSTALTA=4.0
+NLISS=10
+PowPond=0.5
+
+# Minimum number of pixels for building a family
+ThresholdLFamMin=5.000000
+
+# Maximum number of pixels in a family
+ThresholdLFamMax=300
+
+# ThresholdDistance (Euclidian only): Max distance for integrating a new pixel in a family
+ThresholdDistance=1
+
+#====================================================================
+# Frequency-dependent parameters 
+#====================================================================
+
+# --- GENERAL PARAMETERS
+
+# Frequency bands (Hz)
+Fmin=0.1,0.49,0.88,1.27,1.66,2.05,2.44,2.83,3.22,3.61
+Fmax=0.49,0.88,1.27,1.66,2.05,2.44,2.83,3.22,3.61,4
+
+# Duration of PMCC processing window (s) and overlap (%) 
+WindowLength=30
+Overlap=90
+
+# Decimation/Oversampling factor
+# ReSamplingRate<1 decimation
+# ReSamplingRate >1 oversampling
+# ReSamplingRate =1 normal processing
+ReSamplingRate=1
+
+# Filter specification
+# Type of filter Chebyshev (=cheby) or Butterworth (=butter)
+# Filter order (integer)
+# Filter Ripple (dB)
+Filtertype=cheby,cheby,cheby,cheby,cheby,cheby,cheby,cheby,cheby,cheby
+Order=2,2,2,2,2,2,2,2,2,2
+Ripple=0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01
+
+
+
+# --- DETECTION PARAMETERS
+
+# Maximal distance for integrating a new sensor in the progressive approach of PMCC (Q factor x wavelength)
+Qlambda=50.0
+
+# Consistency threshold
+ThresholdConsistency=0.100000
+
+# Minimum number of sensors required for triggering a pixel detection
+ThresholdNbSensors=3
+
+# Minimum speed required for a pixel (km/s)
+VstoreMinPix=0.3
+
+
+# --- FAMILY GROUPING PARAMETERS
+
+# Parameters used for grouping families (see GroupingAlgo parameter)
+# (1) Euclidian distance: sqrt((Daz/aztol)**2+(Dsp/sp_tol)**2+…) < ThresholdDistance
+# (2) or Strict comparison: Daz<az_tol && Dsp<sp_tol && …
+# Time_tol: Max time difference between 2 pixels (seconds)
+# Freq_tol: Max frequency between 2 pixels (number of bands)
+# Fstat_tol: Max Fstat between 2 pixels
+# Az_tolx: Maximum azimuth difference (degres) between 2 pixels
+# Sp_tolx: Maximum speed difference (%) between 2 pixels
+# (Az_tol1,Sp_tol1) are used when pixel speed < Speed_transition (e.g.: infra)
+# (Az_tol2,Sp_tol2) are used when pixel speed > Speed_transition (e.g.: seismic)
+# Criterion may be disabled when setting the relevant tolerance value to -1
+Time_tol=200
+Freq_tol=5
+Fstat_tol=-1
+Az_tol1=10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000
+Sp_tol1=20,20,20,20,20,20,20,20,20,20
+Az_tol2=10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000,10.000000
+Sp_tol2=20,20,20,20,20,20,20,20,20,20
+
+
+#====================================================================
+# Configuration of sensor and channel groups
+#====================================================================
+
+# --- List of stations
+StaList=I26H1,I26H2,I26H3,I26H4,I26H5
+
+# --- Channel name
+Channel=BDF
+
+# --- Station weight (1=station participates, 0=station is excluded)
+StaWeight=1,1,1,1,1
+
+# --- Pre-summation groups (activated if FlagPreproc=1)
+#StaSum={grp1:I26H1,I26H2,I26H3},{grp2:I26H4,I26H5,I26H2},{grp3:I26H7,I26H8,I26H9},{grp4:I26H10,I26H11,I26H12},{grp5:I26H13,I26H14,I26H15}
+
+# --- Definition of the subnetworks (sorted by priority)
+# subnetworks may be composed of groups of sensors (previously defined in StaSum)
+StaGroup={I26H1,I26H2,I26H3},{I26H3,I26H4,I26H5},{I26H1,I26H3,I26H5}
