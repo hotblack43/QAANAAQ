@@ -14,8 +14,8 @@ CNEOS data here: https://cneos.jpl.nasa.gov/fireballs/
 
 ```{r}
 rm(list=ls())
-#setwd("~/WORKSHOP/CTBTO2/")
-setwd("/data/users/pth/WORKSHOP/CTBTO2/")
+#setwd("~/WORKSHOP/QAANAAQ/")
+setwd("/data/users/pth/WORKSHOP/QAANAAQ/")
 library(nleqslv)
 library(sp)
 library(lubridate)

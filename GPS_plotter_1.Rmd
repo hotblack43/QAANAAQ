@@ -9,7 +9,7 @@ output:
 
 ```{r}
 rm(list=ls())
-setwd("~/WORKSHOP/CTBTO2/")
+setwd("~/WORKSHOP/QAANAAQ/")
 library(sp)
 library(rgdal)
 #
