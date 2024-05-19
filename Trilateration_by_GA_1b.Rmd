@@ -38,7 +38,7 @@ library(GA)
 # speed of sound
 c = 343 # m/s
 c <- c/1000  # km/s
-Npop <- 1000 # for the GA
+Npop <- 2000 # for the GA
 #
 df <- read.csv("DATA/offsets.txt",header=TRUE,sep=",")
 coords <- read.csv("DATA/coordinates.txt",header=TRUE,sep=",")
