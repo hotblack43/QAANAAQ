@@ -48,7 +48,7 @@ colnames(easting_northing) <- c("easting","northing")
 
 # plots
 ```{r}
-plot(df$lon,df$lat,pch=19,cex=0.1)
+plot(df$lon,df$lat,pch=19,cex=0.1,asp=1)
 plot(df$POSIX_UTC,df$lon,pch=19,cex=0.1)
 plot(df$POSIX_UTC,df$lat,pch=19,cex=0.1, ylim=c(mean(df$lat)+.002,mean(df$lat)-.002))
 abline(h=mean(df$lat,na.rm=T),col=2,lwd=2)
