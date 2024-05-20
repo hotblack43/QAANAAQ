@@ -53,9 +53,10 @@ plot(df$POSIX_UTC,df$lon,pch=19,cex=0.1)
 plot(df$POSIX_UTC,df$lat,pch=19,cex=0.1, ylim=c(mean(df$lat)+.002,mean(df$lat)-.002))
 abline(h=mean(df$lat,na.rm=T),col=2,lwd=2)
 plot(easting_northing,pch=19,cex=0.1,asp=1)
+print(c('Mean lon : ',round(mean(df$lon),6)))
+print(c('Mean lat : ',round(mean(df$lat),6)))
 print(c('sd of easting  : ',round(sd(easting_northing[,1]),2),' m.'))
-print(c('sd of northing : ',round(sd(easting_northing[,2]),2),' m.'))
-#
+print(c('sd of northing : ',round(sd(easting_northing[,2]),2),' m.'))#
 png("FIGURES/logging_lon_lat.png")
 par(mfrow=c(2,2))
 plot(df$lon,df$lat,pch=19,cex=0.1)
@@ -63,8 +64,7 @@ plot(df$POSIX_UTC,df$lon,pch=19,cex=0.1)
 plot(df$POSIX_UTC,df$lat,pch=19,cex=0.1, ylim=c(mean(df$lat)+.002,mean(df$lat)-.002))
 abline(h=mean(df$lat,na.rm=T),col=2,lwd=2)
 plot(easting_northing,pch=19,cex=0.1,asp=1)
-print(c('sd of easting  : ',round(sd(easting_northing[,1]),2),' m.'))
-print(c('sd of northing : ',round(sd(easting_northing[,2]),2),' m.'))
+
 dev.off()
 ```
 
