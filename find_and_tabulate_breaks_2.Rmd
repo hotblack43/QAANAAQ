@@ -95,7 +95,7 @@ for (iy in 2022:2023)
     
     if (length(idx) != 0){    
       dummy <- findbreaks(df[idx,],main_str)
-       
+       browser()
           }
   }
 
