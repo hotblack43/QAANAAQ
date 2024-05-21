@@ -1,0 +1,55 @@
+---
+title: "Bird reader 1.Rmd"
+format: html
+editor: visual
+---
+
+## Quarto
+
+read all data for all years from the excel file provided April 25 2024.
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(readxl)
+#
+sheetname <- "DATA/TRUSTED_and_OMBedited.xlsx"
+```
+
+```{r}
+# Specify the file path
+file_path <- sheetname
+desired_varnames <- c("DateTimeUTC", "Latitude", "Longitude","BuoyName")
+
+# List the named tabs in the Excel file
+tab_names <- excel_sheets(file_path)
+
+
+
+# Initialize an empty list to store data frames for each word
+word_data_list <- NULL
+
+# Loop over the tab names
+for (itab in tab_names) {
+  print(itab)
+  # Read data from Excel file
+  
+  data <- as.data.frame(read_excel(sheetname, sheet = itab))
+  # Assuming `desired_varnames` contains the names of the variables you want to extract
+  data <- data[, desired_varnames]
+  plot(data$Latitude, data$Longitude, main = itab, pch = 19, cex = 0.3)
+  
+  # Convert to data frame
+  data <- as.data.frame( data)
+  
+  # Add the combined data for the current word to the list
+  word_data_list  <- rbind(word_data_list,data)
+  
+  
+} # end of itab
+
+# Save the list of data frames
+saveRDS(na.omit(word_data_list), file = "OUTPUT/birds_2022_2023_b.rds")
+
+
+```

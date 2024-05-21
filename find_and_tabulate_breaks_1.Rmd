@@ -1,0 +1,85 @@
+---
+title: "GPS breaks finder and tabulator - mélange GPS units"
+output: html_notebook
+---
+
+Process the data saved by 'Read_All_GPS_2.Rmd' - avoid v1 like the plague as it builds tibbles
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(dplyr)
+library(lubridate)
+library(geosphere)
+df <- readRDS("OUTPUT/birds_2022_2023_b.rds")
+cnams <- colnames(df)
+#
+# split the UnitName column and retain only the name name
+df$UnitName <- sapply(strsplit(df$UnitName, " "), `[`, 1)
+#
+# ensure POSIX time
+df$Timestamp_UTC <- as.POSIXct(df$Timestamp_UTC, format="%Y-%m-%d %H:%M:%S",tz='UTC')
+#
+unit_names <- c("Soekonge","OMB_EXB","OMB_DXT","Mallemuk","Ismaage","Havterne","Havoern","Edder")
+
+```
+
+# calculate speeds
+```{r}
+speed_calc <- function(df)
+{
+  speed <- NULL
+  # Calculate the time differences
+  time_diff <- as.numeric(difftime(df$Timestamp_UTC[-1], df$Timestamp_UTC[-nrow(df)], units = "secs"))
+  #
+  for (itime in 1:(nrow(df)-1))
+  {
+    distance = distHaversine(cbind(df$Longitude[itime], df$Latitude[itime]), cbind(df$Longitude[itime+1], df$Latitude[itime+1]), r=6378137)
+    speed  = c(speed,c(abs(distance / time_diff[itime]))) # m/sec
+  }
+  return(speed)
+}
+```
+
+
+
+
+# define function to find and report breaks in the lon-speed and lat-speed
+```{r}
+findbreaks <- function(df_in,main_str)
+{
+  par(mfrow=c(2,2))
+  plot(df_in$Longitude,df_in$Latitude,main=main_str,pch=19,cex=0.3,type="b")
+  plot(df_in$Timestamp_UTC,df_in$Latitude,main=main_str,pch=19,cex=0.3,type="b",ylab="lat")
+  plot(df_in$Timestamp_UTC,df_in$Longitude,main=main_str,pch=19,cex=0.3,type="b",ylab='lon')
+  # calculate speeds
+  speed <- speed_calc(df_in)
+  speed[nrow(df_in)] <- NA
+  plot(df_in$Timestamp_UTC,speed,log="y",pch=19,cex=0.3,ylab="Speed [m/sec]",main=main_str)
+
+  return(speed)
+}
+```
+
+
+
+
+#
+```{r}
+for (iy in 2022:2023)
+{
+  for (iname in unit_names)
+  {
+    main_str <- paste(iname,iy)
+    idx <- which(year(df$Timestamp_UTC) == iy & df$UnitName == iname)
+    
+    if (length(idx) != 0){    
+      dummy <- findbreaks(df[idx,],main_str)
+       
+          }
+  }
+  browser()
+}
+```
+
+

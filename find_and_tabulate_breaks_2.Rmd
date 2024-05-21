@@ -1,0 +1,105 @@
+---
+title: "GPS breaks finder and tabulator - mélange GPS units"
+output: html_notebook
+---
+
+Process the data saved by 'Read_All_GPS_3.Rmd'  
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(dplyr)
+library(lubridate)
+library(geosphere)
+df <- readRDS("OUTPUT/birds_2022_2023_b.rds")
+cnams <- colnames(df)
+#
+# split the BuoyName column and retain only the name name
+df$BuoyName <- sapply(strsplit(df$BuoyName, " "), `[`, 1)
+#
+# ensure POSIX time
+df$DateTimeUTC <- as.POSIXct(df$DateTimeUTC, format="%Y-%m-%dT%H:%M:%S",tz='UTC')
+idx <- order(df$DateTimeUTC)
+df <- df[idx,]
+#
+# fix characters
+df$Latitude <- as.numeric(df$Latitude)
+df$Longitude <- as.numeric(df$Longitude)
+unit_names <- unique(df$BuoyName)
+
+```
+
+# calculate speeds
+```{r}
+speed_calc <- function(df_her) {
+  # Initialize the speed vector
+  speed <- numeric(nrow(df_her) - 1)
+  
+  # Calculate the time differences
+  time_diff <- as.numeric(difftime(df_her$DateTimeUTC[-1], df_her$DateTimeUTC[-nrow(df_her)], units = "secs"))
+
+  # Loop through each time point
+  for (itime in 1:(nrow(df_her) - 1)) {
+    distance <- distHaversine(cbind(df_her$Longitude[itime], df_her$Latitude[itime]), 
+                              cbind(df_her$Longitude[itime + 1], df_her$Latitude[itime + 1]), 
+                              r = 6378137)
+    speed[itime] <- abs(distance / time_diff[itime]) # m/sec
+    
+    # Debugging information (optional)
+    #print(paste("DateTimeUTC:", df_her$DateTimeUTC[itime]))
+    #print(paste("Distance (meters):", distance))
+    #print(paste("Time difference (seconds):", time_diff[itime]))
+    #print(paste("Speed (m/sec):", distance / time_diff[itime]))
+    
+    # Uncomment for debugging
+    #browser()
+  }
+  
+  return(speed)
+}
+```
+
+
+
+
+# define function to find and report breaks in the lon-speed and lat-speed
+```{r}
+findbreaks <- function(df_in,main_str)
+{
+  par(mfrow=c(2,2))
+  plot(df_in$Longitude,df_in$Latitude,main=main_str,pch=19,cex=0.3,type="b")
+  plot(df_in$DateTimeUTC,df_in$Latitude,main=main_str,pch=19,cex=0.3,type="b",ylab="lat")
+  plot(df_in$DateTimeUTC,df_in$Longitude,main=main_str,pch=19,cex=0.3,type="b",ylab='lon')
+  # calculate speeds
+
+  speed <- abs(speed_calc(df_in))
+  speed[nrow(df_in)] <- NA
+
+  plot(df_in$DateTimeUTC,speed,log="y",pch=19,cex=0.3,ylab="Speed [m/sec]",main=main_str)
+
+  return(speed)
+}
+```
+
+
+
+
+#
+```{r}
+for (iy in 2022:2023)
+{
+  for (iname in unit_names)
+  {
+    main_str <- paste(iname,iy)
+    idx <- which(year(df$DateTimeUTC) == iy & df$BuoyName == iname)
+    
+    if (length(idx) != 0){    
+      dummy <- findbreaks(df[idx,],main_str)
+       
+          }
+  }
+
+}
+```
+
+
