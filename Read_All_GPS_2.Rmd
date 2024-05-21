@@ -1,0 +1,85 @@
+---
+title: "Bird reader 1.Rmd"
+format: html
+editor: visual
+---
+
+## *Quarto*
+
+*read all data for all years from the excel file provided April 25 2024.*
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(readxl)
+#
+sheetname <- "DATA/All_birds_all_points.xlsx"
+#sheetname <- "DATA/TRUSTED_and_OMBedited.xlsx"
+```
+
+```{r}
+# Specify the file path
+file_path <- sheetname
+desired_varnames <- c("DateTimeUTC", "Latitude", "Longitude","UnitName")
+
+# List the named tabs in the Excel file
+tab_names <- excel_sheets(file_path)
+
+# Split the tab names
+# Extract word and year separately
+words <- sub("\\d+$", "", tab_names)  # Extract word by removing digits at the end
+years <- as.integer(sub(".*?(\\d+)$", "\\1", tab_names))  # Extract year using regex
+words <- unique(words)
+years <- unique(years)
+
+# Print the extracted words and years
+print(words)
+print(years)
+
+# Initialize an empty list to store data frames for each word
+word_data_list <- NULL
+
+# Loop over the tab names
+for (iyear in years) {
+  # Initialize an empty data frame to store data for the current word
+  word_data <- NULL
+  for (iword in words) {
+    # Construct the sheet name
+    desired_sheet <- paste0(iword, iyear)
+    print(desired_sheet)
+    
+    # Read data from Excel file
+    tryCatch({
+      data <- read_excel(file_path, sheet = desired_sheet)
+      # Assuming `desired_varnames` contains the names of the variables you want to extract
+      data <- data[, desired_varnames]
+      plot(data$Latitude, data$Longitude, main = desired_sheet, pch = 19, cex = 0.3)
+      
+      # Convert to data frame
+      data <- as.data.frame(cbind(iword,data))
+      
+      # Combine data into the word_data data frame
+      if (is.null(word_data)) {
+        word_data <- data
+      } else {
+        word_data <- rbind(word_data, data)
+      } # endif
+      
+      # Add the combined data for the current word to the list
+      word_data_list  <- rbind(word_data_list,word_data)
+    }, error = function(e) {
+      print(paste("Error:", e$message))
+      data <- NULL  # Set data to NULL or handle the error accordingly
+    }) # end TryCatch
+    
+  } # end of iword loop
+} # end of iyear loop
+
+# After the loop, you will have a list `word_data_list` containing combined data frames for each word
+# You can access each combined data frame using the word as the list index, e.g., word_data_list[["Edder"]]
+
+# Save the list of data frames
+saveRDS(word_data_list, file = "OUTPUT/birds_2022_2023_b.rds")
+
+  
+```
