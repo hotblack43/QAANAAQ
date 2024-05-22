@@ -73,6 +73,8 @@ dev.off()
 ```{r}
 plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,df$lon,pch=19,cex=0.1)
 plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,df$lat,pch=19,cex=0.1)
+plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,easting_northing[,1]-mean(easting_northing[,1]),pch=19,cex=0.1,ylab='Easting anomaly [m]')
+plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,easting_northing[,2]-mean(easting_northing[,2]),pch=19,cex=0.1,ylab='Northing anomaly [m]')
 ```
 
  
