@@ -12,6 +12,7 @@ rm(list=ls())
 setwd("~/WORKSHOP/QAANAAQ/")
 library(sp)
 library(rgdal)
+library(lubridate)
 #
 df <- read.csv("DATA/gps_data.txt",sep=",",header=F)
 df <- as.data.frame(df)
@@ -68,5 +69,10 @@ plot(easting_northing,pch=19,cex=0.1,asp=1)
 dev.off()
 ```
 
+# plot against time of day
+```{r}
+plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,df$lon,pch=19,cex=0.1)
+plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,df$lat,pch=19,cex=0.1)
+```
 
  
