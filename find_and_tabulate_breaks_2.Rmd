@@ -43,16 +43,8 @@ speed_calc <- function(df_her) {
     distance <- distHaversine(cbind(df_her$Longitude[itime], df_her$Latitude[itime]), 
                               cbind(df_her$Longitude[itime + 1], df_her$Latitude[itime + 1]), 
                               r = 6378137)
-    speed[itime] <- abs(distance / time_diff[itime]) # m/sec
-    
-    # Debugging information (optional)
-    #print(paste("DateTimeUTC:", df_her$DateTimeUTC[itime]))
-    #print(paste("Distance (meters):", distance))
-    #print(paste("Time difference (seconds):", time_diff[itime]))
-    #print(paste("Speed (m/sec):", distance / time_diff[itime]))
-    
-    # Uncomment for debugging
-    #browser()
+    speed[itime] <- (distance / time_diff[itime]) # m/sec
+
   }
   
   return(speed)
@@ -72,10 +64,10 @@ findbreaks <- function(df_in,main_str)
   plot(df_in$DateTimeUTC,df_in$Longitude,main=main_str,pch=19,cex=0.3,type="b",ylab='lon')
   # calculate speeds
 
-  speed <- abs(speed_calc(df_in))
+  speed <-  (speed_calc(df_in))
   speed[nrow(df_in)] <- NA
 
-  plot(df_in$DateTimeUTC,speed,log="y",pch=19,cex=0.3,ylab="Speed [m/sec]",main=main_str)
+  plot(df_in$DateTimeUTC,speed,pch=19,cex=0.3,ylab="Speed [m/sec]",main=main_str)
 
   return(speed)
 }
@@ -92,11 +84,8 @@ for (iy in 2022:2023)
   {
     main_str <- paste(iname,iy)
     idx <- which(year(df$DateTimeUTC) == iy & df$BuoyName == iname)
-    
-    if (length(idx) != 0){    
-      dummy <- findbreaks(df[idx,],main_str)
-       browser()
-          }
+    if (length(idx) != 0){dummy <- findbreaks(df[idx,],main_str)
+    saveRDS(df[idx,],file=paste0('OUTPUT/',iname,'_isolated.rds'))}
   }
 
 }
