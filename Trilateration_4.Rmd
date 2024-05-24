@@ -185,7 +185,11 @@ print(c('Residuals: ',residuals,' s. RMSE = ',sqrt(sum(residuals^2)),' s.'))
 # plot the MCMC chains
 ```{r}
 dd <- as.data.frame(post.samp)
-plot(dd,pch=19,cex=0.1)
+colnames(dd) <- c("Easting","Northing","Height","Time")
+plot(dd,pch=19,cex=0.1,main="MCMC chains")
+png("FIGURES/MCMC_chains.png")
+plot(dd,pch=19,cex=0.1,main="MCMC chains")
+dev.off()
 ```
 
 
