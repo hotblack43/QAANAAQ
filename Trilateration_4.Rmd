@@ -142,9 +142,6 @@ log_merit_function <- function(parameters, y, X) {
   return(log_posterior)
 }
 ```
- "522.619268298149"       "8531.09977427125" 
-                      x3                       x4 
-       "39.502155482769"      "-245.345844954252" 
 
 # MCMC
 ```{r}
@@ -185,6 +182,11 @@ residuals <- df$t_offset - pred_times
 print(c('Residuals: ',residuals,' s. RMSE = ',sqrt(sum(residuals^2)),' s.'))
 ```
 
+# plot the MCMC chains
+```{r}
+dd <- as.data.frame(post.samp)
+plot(dd,pch=19,cex=0.1)
+```
 
 
 
