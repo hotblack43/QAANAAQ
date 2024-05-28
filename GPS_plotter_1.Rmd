@@ -14,6 +14,7 @@ library(sp)
 library(rgdal)
 library(lubridate)
 #
+system("scp -i ~/.ssh/id_rsa pth@furthur.home:~/gps_data.txt DATA/")
 df <- read.csv("DATA/gps_data.txt",sep=",",header=F)
 df <- as.data.frame(df)
 colnames(df) <- c("POSIX","lon","lat")
@@ -21,7 +22,6 @@ df$POSIX_UTC <- as.POSIXct(df$POSIX)
 idx <- which(df$lon < 100)
 df <- df[idx,]
 # download the data
-system("scp -i ~/.ssh/id_rsa pth@furthur.home:~/gps_data.txt DATA/")
 ```
 
 # define lon/lat to UTM function
