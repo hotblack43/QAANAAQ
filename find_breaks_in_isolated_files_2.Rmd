@@ -1,0 +1,192 @@
+---
+title: "Detect jumps in lon or lat or speed and tabulate 1"
+output: 
+  pdf_document: 
+    fig_height: 8
+---
+
+
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(lubridate)
+library(geosphere) 
+library(dplyr)
+library(MASS)
+library(mclust)
+files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
+idx <- grep('dateRange',files)
+files <- files[-idx]
+#
+Groups_wanted <- 5
+```
+
+# define calculate speeds function
+```{r}
+speed_calc <- function(df_her) {
+  # Initialize the speed vector
+  speed <- numeric(nrow(df_her) - 1)
+  
+  # Calculate the time differences
+  time_diff <- as.numeric(difftime(df_her$DateTimeUTC[-1], df_her$DateTimeUTC[-nrow(df_her)], units = "secs"))
+  
+  # Loop through each time point
+  for (itime in 1:(nrow(df_her) - 1)) {
+    distance <- distHaversine(cbind(df_her$Longitude[itime], df_her$Latitude[itime]),
+                              cbind(df_her$Longitude[itime + 1], df_her$Latitude[itime + 1]),
+                              r = 6378137)
+    speed[itime] <- (distance / time_diff[itime]) # m/sec
+    
+  }
+  #speed <- speed_calc(df)
+  speed <- c(speed,speed[length(speed)]*NA)
+  df_ny <- cbind(df_her,speed)
+  
+  return(df_ny)
+}
+```
+
+
+# define break finder with 'two-windows whole-length' fits
+```{r}
+# Define break finder function
+breakfinder2 <- function(x, y, buffer) {
+  # INPUTS: x, y - the series
+  #         buffer - how long (in points) the two adjacent windows are
+  
+  # Validate inputs
+  if (length(x) != length(y)) stop("x and y must be of the same length")
+  if (buffer <= 0 || buffer >= length(y)) stop("Invalid buffer")
+  
+  # Initialize the results list
+  listen <- data.frame(
+    x = x,
+    rmse = rep(NA, length(y))
+  )
+  
+  for (ipos in (buffer + 1):(length(y) - buffer - 1)) {
+    idx <- which( x <= x[ipos]) # from start to ipos-1
+    jdx <- which( x > x[ipos] ) # from ipos to end
+    
+    # Fit both segments
+    rlm_fit1 <- lm(y[idx] ~ x[idx])
+    rlm_fit2 <- lm(y[jdx] ~ x[jdx])
+    
+    # Calculate the mean squared error (MSE)
+    mse1 <- mean((y[idx] - rlm_fit1$fitted.values)^2)
+    mse2 <- mean((y[jdx] - rlm_fit2$fitted.values)^2)
+    mse <- mse1 + mse2
+    rmse <- sqrt(mse)
+    
+    # Store the result
+    listen$rmse[ipos] <- rmse
+  }
+  
+  return(listen)
+}
+```
+
+# define break finder with sliding windows
+```{r}
+# Define break finder function
+breakfinder <- function(x, y, width) {
+  # INPUTS: x, y - the series
+  #         width - how long (in points) the two adjacent windows are
+  
+  # Validate inputs
+  if (length(x) != length(y)) stop("x and y must be of the same length")
+  if (width <= 0 || width >= length(y)) stop("Invalid width")
+  
+  # Initialize the results list
+  listen <- data.frame(
+    x = x,
+    rmse = rep(NA, length(y))
+  )
+  
+  for (ipos in (width + 1):(length(y) - width - 1)) {
+    idx <- which(x > x[ipos - width] & x <= x[ipos])
+    jdx <- which(x > x[ipos] & x <= x[ipos + width])
+    
+    # Fit both segments
+    rlm_fit1 <- lm(y[idx] ~ x[idx])
+    rlm_fit2 <- lm(y[jdx] ~ x[jdx])
+    
+    # Calculate the mean squared error (MSE)
+    mse1 <- mean((y[idx] - rlm_fit1$fitted.values)^2)
+    mse2 <- mean((y[jdx] - rlm_fit2$fitted.values)^2)
+    mse <- mse1 + mse2
+    rmse <- sqrt(mse)
+    
+    # Store the result
+    listen$rmse[ipos] <- rmse
+  }
+  
+  return(listen)
+}
+```
+
+
+# loop
+```{r}
+
+for (ifil in 1:length(files))
+{
+  filename <- files[ifil]
+  print(filename)
+  descriptor <- strsplit(strsplit(filename,'/')[[1]][2],'.rds')[[1]][1]
+  df <- readRDS(filename)
+  df$DateTimeUTC <- as.POSIXct(df$DateTimeUTC)
+  idx <- order(df$DateTimeUTC)
+  df <- df[idx,]
+  df <- speed_calc(df)
+  #
+  par(mfrow=c(1,1))
+  modl <- Mclust(df[,c(3,2)],G=Groups_wanted)
+  mclust2Dplot(df[,c(3,2)], parameters=modl$parameters,z=modl$z)
+  df$class <- modl$classification
+  # Determine date range of each class
+  dateRange <- data.frame(Class = integer(), StartDate = as.POSIXct(character()), EndDate = as.POSIXct(character()), stringsAsFactors = FALSE)
+  for (iclust in unique(df$class)) {
+    range_dates <- range(df$DateTimeUTC[df$class == iclust])
+    dateRange <- rbind(dateRange, data.frame(Class = iclust, StartDate = range_dates[1], EndDate = range_dates[2], N = length(which(df$class == iclust))))
+    
+  }
+  # Explicitly set timezone to UTC
+  dateRange$StartDate <- as.POSIXct(dateRange$StartDate, origin="1970-01-01", tz = "UTC")
+  dateRange$EndDate <- as.POSIXct(dateRange$EndDate, origin="1970-01-01", tz = "UTC")
+  
+  print(dateRange)
+  # Plot Latitude
+  par(mfrow=c(2,1))
+  plot(df$DateTimeUTC, df$Latitude, type="p", main=filename, xlab="DateTimeUTC", ylab="Latitude",pch=19,cex=0.3)
+  # Plot Latitude with colored segments
+  plot(df$DateTimeUTC, df$Latitude, type="n", main=filename, xlab="DateTimeUTC", ylab="Latitude",pch=19,cex=0.3)
+  for (i in unique(df$class)) {
+    points(df$DateTimeUTC[df$class == i], df$Latitude[df$class == i], type="p", col=i,pch=19,cex=0.3)
+  }
+  # Plot Longitude
+  par(mfrow=c(2,1))
+  plot(df$DateTimeUTC, df$Longitude, type="p", main=filename, xlab="DateTimeUTC", ylab="Longitude",pch=19,cex=0.3)
+  # Plot Longitude with colored segments
+  plot(df$DateTimeUTC, df$Longitude, type="n", main=filename, xlab="DateTimeUTC", ylab="Longitude",pch=19,cex=0.3)
+  for (i in unique(df$class)) {
+    points(df$DateTimeUTC[df$class == i], df$Longitude[df$class == i], type="p", col=i,pch=19,cex=0.3)
+  }
+  # Plot speed
+  par(mfrow=c(2,1))
+  plot(df$DateTimeUTC, df$speed, type="p", main=filename, xlab="DateTimeUTC", ylab="speed", pch=19, cex=0.3, log='y')
+  # Plot speed with colored segments
+  plot(df$DateTimeUTC, df$speed, type="n", main=filename, xlab="DateTimeUTC", ylab="speed",pch=19,cex=0.3, log='y')
+  for (i in unique(df$class)) {
+    points(df$DateTimeUTC[df$class == i], df$speed[df$class == i], type="p", col=i,pch=19,cex=0.3)
+  }
+  breaks <- as.data.frame(breakfinder2(df$DateTimeUTC,df$Longitude,24))
+  par(mfrow=c(1,1))
+  plot(breaks,type="l",main="Two-segment analysis")
+  #
+  saveRDS(dateRange,paste0('OUTPUT/dateRange_',descriptor,'.rds'))
+} # end of ifil loop
+```
+
+

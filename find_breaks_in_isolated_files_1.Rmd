@@ -1,0 +1,113 @@
+---
+title: "Detect jumps in lon or lat or speed and tabulate 1"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(lubridate)
+library(geosphere) 
+library(dplyr)
+library(MASS)
+files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
+```
+
+# define calculate speeds function
+```{r}
+speed_calc <- function(df_her) {
+  # Initialize the speed vector
+  speed <- numeric(nrow(df_her) - 1)
+  
+  # Calculate the time differences
+  time_diff <- as.numeric(difftime(df_her$DateTimeUTC[-1], df_her$DateTimeUTC[-nrow(df_her)], units = "secs"))
+  
+  # Loop through each time point
+  for (itime in 1:(nrow(df_her) - 1)) {
+    distance <- distHaversine(cbind(df_her$Longitude[itime], df_her$Latitude[itime]),
+                              cbind(df_her$Longitude[itime + 1], df_her$Latitude[itime + 1]),
+                              r = 6378137)
+    speed[itime] <- (distance / time_diff[itime]) # m/sec
+    
+  }
+  #speed <- speed_calc(df)
+  speed <- c(speed,speed[length(speed)]*NA)
+  df_ny <- cbind(df_her,speed)
+  
+  return(df_ny)
+}
+```
+
+
+# define break finder
+```{r}
+# the function slides two adjacent windows along a time series in order to detect breaks in level
+breakfinder <- function(x, y, width) {
+  # INPUTS: x, y - the series
+  #         width - how long (in points) the two adjacent windows are
+  
+  # Validate inputs
+  if (length(x) != length(y)) stop("x and y must be of the same length")
+  if (width <= 0 || width >= length(y)) stop("Invalid width")
+  
+  # Initialize the results matrix with NA values
+  listen <- matrix(NA, nrow = length(y), ncol = 2)
+  colnames(listen) <- c("x", "rmse")
+  
+  for (ipos in (width + 1):(length(y) - width - 1)) {
+    idx <- which(x > x[ipos - width] & x <= x[ipos])
+    jdx <- which(x > x[ipos] & x <= x[ipos + width])
+    
+    # Fit both segments
+    rlm_fit1 <- lm(y[idx] ~ x[idx])
+    rlm_fit2 <- lm(y[jdx] ~ x[jdx])
+    
+    # Calculate the mean squared error (MSE)
+    mse1 <- mean((y[idx] - rlm_fit1$fitted.values)^2)
+    mse2 <- mean((y[jdx] - rlm_fit2$fitted.values)^2)
+    mse <- mse1 + mse2
+    rmse <- sqrt(mse)
+    
+    # Store the result
+    listen[ipos, 1] <- x[ipos]
+    listen[ipos, 2] <- rmse
+  }
+ 
+  return(listen)
+}
+```
+
+
+# loop
+```{r}
+
+for (ifil in 1:1)
+{
+  filename <- files[ifil]
+  
+  df <- readRDS(filename)
+  df$DateTimeUTC <- as.POSIXct(df$DateTimeUTC)
+  #
+  # sort by time(
+  idx <- order(df$DateTimeUTC)
+  df <- df[idx,]
+  # calculate the speed and add it as a column to df
+  df <- speed_calc(df)
+  # plot and estimate number of actual breaks
+  par(mfrow=c(2,1))
+  plot(df$DateTimeUTC,df$Latitude,type="l")
+  plot(df$DateTimeUTC,df$Longitude,type="l")
+  plot(df$DateTimeUTC,df$speed,type="l")
+  plot(df$Longitude,df$Latitude,type="p",pch=19,cex=0.1)
+  breaks <- as.data.frame(breakfinder(df$DateTimeUTC,df$Longitude,50))
+  new_breaks <- df$DateTimeUTC
+  new_breaks <- cbind(new_breaks,breaks[,2])
+  plot(breaks)
+} # end of ifil loop
+```
+
+
