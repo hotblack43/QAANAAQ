@@ -19,7 +19,7 @@ files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
 idx <- grep('dateRange',files)
 files <- files[-idx]
 #
-Groups_wanted <- 6
+Groups_wanted <- 7
 ```
 
 # define calculate speeds function
@@ -140,11 +140,14 @@ for (ifil in 1:length(files))
   idx <- order(df$DateTimeUTC)
   df <- df[idx,]
   df <- speed_calc(df)
+  idx <- which(df$speed != 0)
+  df <- df[idx,]
   #
   par(mfrow=c(1,1))
-  modl <- Mclust(df[,c(3,2)],G=Groups_wanted)
+  modl <- Mclust(df[,c(3,2)]) #,G=Groups_wanted)
   mclust2Dplot(df[,c(3,2)], parameters=modl$parameters,z=modl$z)
   df$class <- modl$classification
+  summary(modl)
   # Determine date range of each class
   dateRange <- data.frame(Class = integer(), StartDate = as.POSIXct(character()), EndDate = as.POSIXct(character()), stringsAsFactors = FALSE)
   for (iclust in unique(df$class)) {
@@ -182,8 +185,18 @@ for (ifil in 1:length(files))
     points(df$DateTimeUTC[df$class == i], df$speed[df$class == i], type="p", col=i,pch=19,cex=0.3)
   }
   breaks <- as.data.frame(breakfinder2(df$DateTimeUTC,df$Longitude,24))
-  par(mfrow=c(1,1))
-  plot(breaks,type="l",main="Two-segment analysis")
+  par(mfrow=c(2,1))
+  plot(breaks,type="l",main="Two-segment analysis. Derivative is red")
+  x <- breaks[,1]
+  y <- breaks[,2]
+  #lines(x[-length(x)], diff(y) / as.numeric(diff(x)), type="l",col=2)
+  #plot(x, diff(y) / as.numeric(diff(x)), type="l")
+# Add the second graph
+par(new=TRUE)  # Allow new plot on top
+plot(x[-length(x)], diff(y) / as.numeric(diff(x)), type="l", col="red", axes=FALSE, xlab="", ylab="")
+
+# Add the second y-axis
+axis(side=4)  # Side 4 is the right side
   #
   saveRDS(dateRange,paste0('OUTPUT/dateRange_',descriptor,'.rds'))
 } # end of ifil loop
