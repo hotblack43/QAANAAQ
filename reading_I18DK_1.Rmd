@@ -12,7 +12,7 @@ Read the data from the I18 instrument at Qannaq. Using correlation, find the lag
 ```{r, setup}
 #| echo: false
 rm(list=ls())
-setwd("~/WORKSHOP/CTBTO2/")
+setwd("~/WORKSHOP/QAANAAQ/")
 library(Hmisc)
 library(akima)
 #

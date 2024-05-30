@@ -1,5 +1,5 @@
 ---
-title: "Detect jumps in lon or lat or speed and tabulate - using mclust"
+title: "Detect jumps in lon or lat or speed and tabulate - using EMCluster"
 output: 
   pdf_document: 
     fig_height: 8
@@ -15,6 +15,7 @@ library(geosphere)
 library(dplyr)
 library(MASS)
 library(mclust)
+library(EMCluster)
 files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
 idx <- grep('dateRange',files)
 files <- files[-idx]
@@ -144,10 +145,19 @@ for (ifil in 1:length(files))
   df <- df[idx,]
   #
   par(mfrow=c(1,1))
-  modl <- Mclust(df[,c(3,2)]) #,G=Groups_wanted)
-  mclust2Dplot(df[,c(3,2)], parameters=modl$parameters,z=modl$z)
-  df$class <- modl$classification
-  summary(modl)
+  # Initialize the EM model with a guess of some clusters
+  em_obj <- init.EM(df[,c(3,2)], nclass = 5, method = "em.EM")
+  # Run the EM algorithm
+  tmm_model <- emcluster(df[,c(3,2)],em_obj, assign.class=TRUE)
+  
+  # Assign each data point to a cluster
+  cluster_assignments <- tmm_model$class
+  
+  # Model summary
+  summary(tmm_model)
+  
+  #
+  df$class <- cluster_assignments
   # Determine date range of each class
   dateRange <- data.frame(Class = integer(), StartDate = as.POSIXct(character()), EndDate = as.POSIXct(character()), stringsAsFactors = FALSE)
   for (iclust in unique(df$class)) {
@@ -160,43 +170,47 @@ for (ifil in 1:length(files))
   dateRange$EndDate <- as.POSIXct(dateRange$EndDate, origin="1970-01-01", tz = "UTC")
   
   print(dateRange)
+  # Plot Latitude vs Longitude
+  par(mfrow=c(1,1))
+  # Plot Latitude with colored segments
+  plot(df$Longitude, df$Latitude, type="n", main=filename, xlab="Longitude", ylab="Latitude",pch=19,cex=0.3)
+  for (i in unique(df$class)) {
+    points(df$Longitude[df$class == i], df$Latitude[df$class == i], type="p", col=i,pch=19,cex=0.3)
+  }
   # Plot Latitude
-  par(mfrow=c(2,1))
-  plot(df$DateTimeUTC, df$Latitude, type="p", main=filename, xlab="DateTimeUTC", ylab="Latitude",pch=19,cex=0.3)
+ # par(mfrow=c(2,1))
   # Plot Latitude with colored segments
   plot(df$DateTimeUTC, df$Latitude, type="n", main=filename, xlab="DateTimeUTC", ylab="Latitude",pch=19,cex=0.3)
   for (i in unique(df$class)) {
     points(df$DateTimeUTC[df$class == i], df$Latitude[df$class == i], type="p", col=i,pch=19,cex=0.3)
   }
   # Plot Longitude
-  par(mfrow=c(2,1))
-  plot(df$DateTimeUTC, df$Longitude, type="p", main=filename, xlab="DateTimeUTC", ylab="Longitude",pch=19,cex=0.3)
+ # par(mfrow=c(2,1))
   # Plot Longitude with colored segments
   plot(df$DateTimeUTC, df$Longitude, type="n", main=filename, xlab="DateTimeUTC", ylab="Longitude",pch=19,cex=0.3)
   for (i in unique(df$class)) {
     points(df$DateTimeUTC[df$class == i], df$Longitude[df$class == i], type="p", col=i,pch=19,cex=0.3)
   }
   # Plot speed
-  par(mfrow=c(2,1))
-  plot(df$DateTimeUTC, df$speed, type="p", main=filename, xlab="DateTimeUTC", ylab="speed", pch=19, cex=0.3, log='y')
+ # par(mfrow=c(2,1))
   # Plot speed with colored segments
   plot(df$DateTimeUTC, df$speed, type="n", main=filename, xlab="DateTimeUTC", ylab="speed",pch=19,cex=0.3, log='y')
   for (i in unique(df$class)) {
     points(df$DateTimeUTC[df$class == i], df$speed[df$class == i], type="p", col=i,pch=19,cex=0.3)
   }
   breaks <- as.data.frame(breakfinder2(df$DateTimeUTC,df$Longitude,24))
-  par(mfrow=c(2,1))
+ # par(mfrow=c(2,1))
   plot(breaks,type="l",main="Two-segment analysis. Derivative is red")
   x <- breaks[,1]
   y <- breaks[,2]
   #lines(x[-length(x)], diff(y) / as.numeric(diff(x)), type="l",col=2)
   #plot(x, diff(y) / as.numeric(diff(x)), type="l")
-# Add the second graph
-par(new=TRUE)  # Allow new plot on top
-plot(x[-length(x)], diff(y) / as.numeric(diff(x)), type="l", col="red", axes=FALSE, xlab="", ylab="")
-
-# Add the second y-axis
-axis(side=4)  # Side 4 is the right side
+  # Add the second graph
+  par(new=TRUE)  # Allow new plot on top
+  plot(x[-length(x)], diff(y) / as.numeric(diff(x)), type="l", col="red", axes=FALSE, xlab="", ylab="")
+  
+  # Add the second y-axis
+  axis(side=4)  # Side 4 is the right side
   #
   saveRDS(dateRange,paste0('OUTPUT/dateRange_',descriptor,'.rds'))
 } # end of ifil loop
