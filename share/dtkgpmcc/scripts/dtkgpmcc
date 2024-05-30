@@ -1,5 +1,0 @@
-#!/bin/bash
-
-export LD_LIBRARY_PATH=$DTKGPMCC_DRIVERS:$LD_LIBRARY_PATH
-echo --- GPMCC is starting ---
-dtkgpmcc $@
