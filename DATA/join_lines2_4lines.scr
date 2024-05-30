@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Check if the input file is provided as an argument
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 input_file"
+    exit 1
+fi
+
+input_file=$1
+
+# Read the input file and process it
+while IFS= read -r line1 && IFS= read -r line2 && IFS= read -r line3 && IFS= read -r line4 && IFS= read -r blank_line; do
+    # Combine the three lines into one, maintaining the blank line
+    combined_line="${line1} ${line2} ${line3} ${line4} ${blank_line}"
+    
+    # Print the combined line
+    echo "$combined_line"
+done < "$input_file"
+

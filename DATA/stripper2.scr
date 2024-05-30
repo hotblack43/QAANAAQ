@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Check if the input file is provided as an argument
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 input_file"
+    exit 1
+fi
+
+input_file=$1
+
+# Check if the input file exists
+if [[ ! -f "$input_file" ]]; then
+    echo "Error: File '$input_file' not found!"
+    exit 1
+fi
+
+# Filter and print lines that do not contain the specified words or sequences
+grep -Ev 'STA|CHAN|TIME|WFID|CHANID|JDATE|ENDTIME|NSAMP|SAMPRATE|CALIB|CALPER|INSTYP|S DA C|DIR|DFILE|FOFF|COMMID|LDDATE|---|---|----|-- -|-----' "$input_file"
+
