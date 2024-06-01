@@ -1,0 +1,39 @@
+---
+title: "Plot data from I18"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+ 
+```{r}
+rm(list = ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+#
+files <- c(
+  "DATA/I18H1_BDF_1727999.txt",
+  "DATA/I18H2_BDF_1727999.txt",
+  "DATA/I18H3_BDF_1727999.txt",
+  "DATA/I18H4_BDF_1727999.txt",
+  "DATA/I18L1_BDF_1727999.txt",
+  "DATA/I18L2_BDF_1727999.txt",
+  "DATA/I18L3_BDF_1091200.txt",
+  "DATA/I18L4_BDF_1727999.txt"
+)
+```
+
+# plot in panel
+```{r}
+for (fil in files)
+{
+  
+  df <- read.csv(fil,sep="",header=F)
+  colnames(df) <- c("time","obs")
+  df$obs <- df$obs/10000
+  plot(df,type="l")
+  
+}
+```
+
+
+ 

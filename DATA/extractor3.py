@@ -22,7 +22,7 @@ def process_block():
         # Write data to output file with computed time values
         for i, line in enumerate(data_lines):
             current_time = time + i / samprate
-            f.write(f"{current_time:.6f} {line}\n")
+            f.write(f"{current_time:.2f} {line}\n")
 
 # Read input file line by line
 with open(input_file, 'r') as f:
