@@ -1,0 +1,78 @@
+---
+title: "Plot data from I18 - 2"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+Uses a data file set up by "plot_I18_files_1.Rmd"
+```{r}
+rm(list = ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+#
+df <- readRDS("OUTPUT/calving_2022123.rds")
+df$POSIX <- as.POSIXct(df$POSIX, tz="UTC")
+cnams <- colnames(df)
+```
+
+# plot in panel
+```{r}
+#
+start_time <- as.POSIXct("2022-05-03 14:10:00 UTC")
+end_time <- as.POSIXct("2022-05-03 14:25:00 UTC")
+idx <- which(df$POSIX >= start_time & df$POSIX < end_time)
+for (icol in 2:(ncol(df)-1))
+{
+  plot(df$POSIX[idx],df[idx,icol],main=cnams[icol],type="l")
+  
+  
+}
+
+```
+
+# define an offset-finder function
+```{r}
+offset_finder <- function(y1,y2)
+{
+# Calculate cross-correlation
+cross_corr <- ccf(y1, y2)
+
+# Find lag with maximum correlation
+max_corr_index <- which.max(cross_corr$acf)
+
+# Get lag corresponding to maximum correlation
+optimal_offset <- cross_corr$lag[max_corr_index]
+return(optimal_offset/20)
+}
+```
+
+
+
+
+# Find time offsets between instruments given a data-window
+```{r}
+start_time <- as.POSIXct("2022-05-03 12:10:00 UTC")
+end_time <- as.POSIXct("2022-05-03 12:25:00 UTC")
+idx <- which(df$POSIX >= start_time & df$POSIX < end_time)
+ 
+  series1 <- df[idx,2]
+  series2 <- df[idx,3]
+  series3 <- df[idx,4]
+  series4 <- df[idx,5]
+  series5 <- df[idx,6]
+  series6 <- df[idx,7]
+  series7 <- df[idx,8]
+  series8 <- df[idx,9]
+ 
+  d12 <- offset_finder(series2,series1)
+  d13 <- offset_finder(series2,series3)
+  d14 <- offset_finder(series2,series4)
+  d15 <- offset_finder(series2,series5)
+  d16 <- offset_finder(series2,series6)
+  d17 <- offset_finder(series2,series7)
+  d18 <- offset_finder(series2,series8)
+```
+
+
+
+ 
