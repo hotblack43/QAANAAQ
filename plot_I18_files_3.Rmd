@@ -12,7 +12,7 @@ setwd("~/WORKSHOP/QAANAAQ/")
 library(stats)
 #
 # Define the window size for the moving average (low-pass filter)
-window_size <- 444
+window_size <-  3*20*2*2
 #
 df <- readRDS("OUTPUT/calving_2022123.rds")
 df$POSIX <- as.POSIXct(df$POSIX, tz="UTC")
@@ -22,16 +22,30 @@ cnams <- colnames(df)
 
 # define a high-pass filter
 ```{r}
-gohipassfilter <- function(data,window_size=5)
+gohipassfilter <- function(data, window_size)
 {
-# Create a low-pass filter using a moving average
-low_pass_filter <- filter(data, rep(1/window_size, window_size), sides=2)
+  # Create a low-pass filter using a moving average
+  low_pass_filter <- filter(data, rep(1 / window_size, window_size), sides =
+                              2)
+  # Subtract the low-pass filter from the original time series to get the high-pass filter
+  high_pass_filter <- data - low_pass_filter
+  return(high_pass_filter)
+}
+```
 
-# Subtract the low-pass filter from the original time series to get the high-pass filter
-high_pass_filter <- data - low_pass_filter
+# define an offset-finder function
+```{r}
+offset_finder <- function(y1,y2)
+{
+# Calculate cross-correlation
+cross_corr <- ccf(y1, y2, plot=FALSE)
 
-return(high_pass_filter)  
+# Find lag with maximum correlation
+max_corr_index <- which.max(cross_corr$acf)
 
+# Get lag corresponding to maximum correlation
+optimal_offset <- cross_corr$lag[max_corr_index]
+return(optimal_offset/20)
 }
 ```
 
@@ -50,8 +64,6 @@ dd <- na.omit(dd)
 for (icol in 2:(ncol(dd)-1))
 {
   plot(dd[,c(10,icol)],main=cnams[icol],type="l")
-
-  
 }
 plot(dd[,c(10,2)],main=cnams[icol],type="l",col=1,ylim=c(-3,3))
 lines(dd[,c(10,3)],main=cnams[icol],type="l",col=2)
@@ -62,30 +74,8 @@ lines(dd[,c(10,7)],main=cnams[icol],type="l",col=6)
 lines(dd[,c(10,8)],main=cnams[icol],type="l",col=7)
 lines(dd[,c(10,9)],main=cnams[icol],type="l",col=8)
 
-```
-
-# define an offset-finder function
-```{r}
-offset_finder <- function(y1,y2)
-{
-# Calculate cross-correlation
-cross_corr <- ccf(y1, y2)
-
-# Find lag with maximum correlation
-max_corr_index <- which.max(cross_corr$acf)
-
-# Get lag corresponding to maximum correlation
-optimal_offset <- cross_corr$lag[max_corr_index]
-return(optimal_offset/20)
-}
-```
-
-
-
-
 # Find time offsets between instruments given a data-window
-```{r}
-
+ 
   series1 <- dd[,2]
   series2 <- dd[,3]
   series3 <- dd[,4]
@@ -95,15 +85,110 @@ return(optimal_offset/20)
   series7 <- dd[,8]
   series8 <- dd[,9]
  
-  d12 <- offset_finder(series2,series1)
-  d13 <- offset_finder(series2,series3)
-  d14 <- offset_finder(series2,series4)
-  d15 <- offset_finder(series2,series5)
-  d16 <- offset_finder(series2,series6)
-  d17 <- offset_finder(series2,series7)
-  d18 <- offset_finder(series2,series8)
+  d12 <- offset_finder(series1,series2)
+  d13 <- offset_finder(series1,series3)
+  d14 <- offset_finder(series1,series4)
+  d15 <- offset_finder(series1,series5)
+  d16 <- offset_finder(series1,series6)
+  d17 <- offset_finder(series1,series7)
+  d18 <- offset_finder(series1,series8)
+
 ```
 
+```{r}
+# Define the start and end times
+start_time <- as.POSIXct("2022-05-03 14:10:00 UTC")
+end_time <- as.POSIXct("2022-06-03 14:15:00 UTC")  # Altered end time for testing
+
+# Define the window length in seconds (e.g., 60 seconds)
+window_length <- 60
+# Calculate the step size (half the window length)
+step_size <- window_length / 2
+
+# Initialize a data frame to store the results
+results <- data.frame(
+  start_time = as.POSIXct(character()),
+  end_time = as.POSIXct(character()),
+  offset_12 = numeric(),
+  offset_13 = numeric(),
+  offset_14 = numeric(),
+  offset_15 = numeric(),
+  offset_16 = numeric(),
+  offset_17 = numeric(),
+  offset_18 = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Create a sequence of start times for the windows
+window_start_times <- seq(from = start_time, to = end_time - window_length, by = step_size)
+
+# Loop over the time windows
+for (window_start in window_start_times) {
+  #print(window_start)
+  # Define the end time of the current window
+  window_end <- window_start + window_length
+
+  # Extract the data for the current window
+  idx <- which(df$POSIX >= window_start & df$POSIX < window_end)
+  dd <- df[idx, ]
+
+  # Skip iteration if not enough data in the window
+  if (nrow(dd) < (window_length / 2)) {
+    next
+  }
+
+  dd <- na.omit(dd)
+  if (nrow(dd) < (window_length / 2)) {
+    next  # Skip if too many NAs
+  }
+
+  dd[, 2:9] <- scale(dd[, 2:9])
+
+  for (icol in 2:(ncol(dd) - 1)) {
+    dd[, icol] <- gohipassfilter(dd[, icol], window_size)
+  }
+  dd <- na.omit(dd)
+  if (nrow(dd) < (window_length / 2)) {
+    next  # Skip if too many NAs after filtering
+  }
+  #print(dim(dd))
+  # Find time offsets between instruments given a data-window
+  series1 <- dd[, 2]
+  series2 <- dd[, 3]
+  series3 <- dd[, 4]
+  series4 <- dd[, 5]
+  series5 <- dd[, 6]
+  series6 <- dd[, 7]
+  series7 <- dd[, 8]
+  series8 <- dd[, 9]
+
+  offset_12 <- offset_finder(series1, series2)
+  offset_13 <- offset_finder(series1, series3)
+  offset_14 <- offset_finder(series1, series4)
+  offset_15 <- offset_finder(series1, series5)
+  offset_16 <- offset_finder(series1, series6)
+  offset_17 <- offset_finder(series1, series7)
+  offset_18 <- offset_finder(series1, series8)
+
+  # Store the results for the current window in the data frame
+  results <- rbind(results, data.frame(
+    start_time = window_start,
+    end_time = window_end,
+    offset_12 = offset_12,
+    offset_13 = offset_13,
+    offset_14 = offset_14,
+    offset_15 = offset_15,
+    offset_16 = offset_16,
+    offset_17 = offset_17,
+    offset_18 = offset_18,
+    stringsAsFactors = FALSE
+  ))
+}
+
+# Print the results data frame
+print(results)
+
+```
 
 
  
