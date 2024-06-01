@@ -12,6 +12,7 @@ Trilateration_3_justMCMC_files/
  
 gps_data.txt
 DATA/gps_data.txt
- 
+DATA/I18*
+DATA/dag123.asc
 *.rds
  
