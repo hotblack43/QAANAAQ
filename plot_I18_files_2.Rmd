@@ -42,7 +42,7 @@ max_corr_index <- which.max(cross_corr$acf)
 
 # Get lag corresponding to maximum correlation
 optimal_offset <- cross_corr$lag[max_corr_index]
-return(max_corr_index/20)
+return(optimal_offset/20)
 }
 ```
 
@@ -64,9 +64,13 @@ idx <- which(df$POSIX >= start_time & df$POSIX < end_time)
   series7 <- df[idx,8]
   series8 <- df[idx,9]
  
-  offset_finder(series1,series2)
-  
- 
+  d12 <- offset_finder(series2,series1)
+  d13 <- offset_finder(series2,series3)
+  d14 <- offset_finder(series2,series4)
+  d15 <- offset_finder(series2,series5)
+  d16 <- offset_finder(series2,series6)
+  d17 <- offset_finder(series2,series7)
+  d18 <- offset_finder(series2,series8)
 ```
 
 
