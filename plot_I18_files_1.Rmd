@@ -24,15 +24,25 @@ files <- c(
 
 # plot in panel
 ```{r}
-for (fil in files)
-{
+# Initialize samlet as an empty data frame
+samlet <- data.frame(time = numeric())
+
+# Loop through files
+for (fil in files) {
+  varnam <- strsplit(strsplit(fil, '/')[[1]][2], '_')[[1]][1]
+  df <- read.csv(fil, sep = "", header = FALSE)
+  colnames(df) <- c("time", varnam)
+  df[, 2] <- df[, 2] / 10000
+  #plot(df, type = "l")
   
-  df <- read.csv(fil,sep="",header=F)
-  colnames(df) <- c("time","obs")
-  df$obs <- df$obs/10000
-  plot(df,type="l")
-  
+  # Merge with samlet
+  samlet <- merge(samlet, df, by = "time", all = TRUE)
 }
+# Assuming 'samlet' is your merged data frame
+samlet$POSIX <- as.POSIXct(samlet$time, origin = "1970-01-01", tz = "UTC") 
+saveRDS(samlet,'OUTPUT/calving_2022123.rds')
+
+
 ```
 
 
