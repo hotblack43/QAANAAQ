@@ -30,3 +30,4 @@ rm I18L3_BDF_85600.txt I18L3_BDF_523199.txt
 for instance.
 
 The files can then be plotted in R using the script 'plot_I18_files_2.Rmd'
+Note: you may be reminded to run 'plot_I18_files_1.Rmd' first!
