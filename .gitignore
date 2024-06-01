@@ -9,5 +9,9 @@ share/
 SAFE/
 Trilateration_1_files/
 Trilateration_3_justMCMC_files/
+<<<<<<< HEAD
 gps_data.txt
 DATA/gps_data.txt
+=======
+*.rds
+>>>>>>> bad689935e712d8d887c0e32cdc2104aabce1b58

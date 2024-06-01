@@ -1,0 +1,111 @@
+---
+title: "Reading the I18DK data file"
+author: "Peter og Nis"
+format: html
+editor: visual
+---
+
+## Introduction
+
+Read the data from the I18 instrument at Qannaq. Using correlation, find the lag between the sources.
+
+```{r, setup}
+#| echo: false
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(Hmisc)
+library(akima)
+#
+filname <- "DATA/Bolide_v2.csv"
+df <- read.csv(filname,dec=".",sep=";",header=TRUE)
+df$time <- (1:132)/20.
+cnams <- colnames(df)
+```
+
+```{r}
+# plot
+for (icol in 1:(ncol(df)-1))
+{
+  plot(df$time,df[, icol], type = "l", ylab = cnams[icol])
+}
+```
+
+## Interpolate
+
+Make a smooth interpolation
+
+```{r}
+# Function to interpolate dataframe rows
+interpolate_rows <- function(df, factor) {
+  # Calculate the new number of rows
+  new_n_rows <- nrow(df) * factor
+  
+  # Generate new time points
+  new_time <- seq(min(df$time), max(df$time), length.out = new_n_rows)
+  
+  # Perform Akima interpolation for each column
+  interp_data <- lapply(df[, -ncol(df)], function(col) {
+    #interp_result <- interp(x = df$time, y = col, xo = new_time, extrap = TRUE)
+    interp_result <- spline(df$time, col, xout = new_time)
+    interp_result$y
+  })
+  
+  # Combine interpolated data with new time column
+  interpolated_df <- data.frame(interp_data)
+  interpolated_df$time <- new_time
+  
+  return(interpolated_df)
+}
+```
+
+Interpolate and Plot
+
+```{r}
+new_df <- interpolate_rows(df,5)
+#
+for (icol in 1:(ncol(df)-1))
+{
+  print(icol)
+plot(df$time,df[,icol],pch=19,cex=1)
+  lines(new_df$time,new_df[,icol],col=2,type="b",cex=0.3,pch=19)
+}
+```
+
+```{r}
+
+#df <- new_df
+cnams <- colnames(df)
+first <- df[, 7]
+idx <- which(df[,7] == max(df[,7]))
+tmax0 <- df$time[idx]
+#plot(df$time, df[, 1], type = "l", ylab = cnams[1])
+for (icol in 1:(ncol(df) - 1))
+{
+  if (icol != 7) {
+    #find peak time
+    idx <- which(df[,icol] == max(df[,icol]))
+    tmax <- df$time[idx]
+        #
+    cross_corr <- ccf(first, df[, icol])
+    # Find the lag with maximum correlation
+    max_corr_index <- which.max(cross_corr$acf)
+    lag <- cross_corr$lag[max_corr_index]
+    max_corr <- cross_corr$acf[max_corr_index]
+    print(c(
+      paste(" 7 vs ", icol,":",cnams[icol]),
+      " CCF = ",
+      round(max_corr, 2),
+      " at lag ",
+      round(lag / 20, 3),
+      " s.",
+      " tmax = ",
+      tmax-tmax0
+    ))
+    plot(df$time, first, type = "b", pch = 19)
+    lines(df$time, Lag(df[, icol], lag), col = 2, lwd = 3)
+  }
+}
+print(tmax0)
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
