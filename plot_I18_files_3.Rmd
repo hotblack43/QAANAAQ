@@ -187,7 +187,8 @@ for (window_start in window_start_times) {
 
 # Print the results data frame
 print(results)
-
+# Save it
+saveRDS(results,file=paste0('OUTPUT/sliding_window_',window_size,'_delays_data_2022123.rds'))
 ```
 
 

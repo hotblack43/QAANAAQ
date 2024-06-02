@@ -5,6 +5,7 @@ output:
     fig_height: 7
 ---
 
+The input files here were generated with a bash script from the dag123.asc file downloaded using the geotool provided by VDEC.
  
 ```{r}
 rm(list = ls())
