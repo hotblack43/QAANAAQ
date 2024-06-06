@@ -9,7 +9,7 @@ share/
 SAFE/
 Trilateration_1_files/
 Trilateration_3_justMCMC_files/
- 
+*.gz 
 gps_data.txt
 DATA/gps_data.txt
 DATA/I18*
