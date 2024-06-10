@@ -7,7 +7,7 @@ editor: visual
 
 ## Introduction
 
-Read the data from the I18 instrument at Qannaq. Using correlation, find the lag between the sources.
+Read the data from the I18 instrument at Qaanaaq. Using correlation, find the lag between the sources.
 
 ```{r, setup}
 #| echo: false

@@ -1,0 +1,78 @@
+---
+title: "Study power spectra of Qaanaaq series"
+output: html_notebook
+---
+
+SETUP
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+#
+df <- readRDS("OUTPUT/calving_2022123.rds")
+# column time is in seconds since 1970.0, but looks like integers - it isn't
+#
+```
+
+
+
+Define function to make power spectra
+
+```{r}
+pth_spec <- function(data)
+{
+  time <- data[, 1]
+  signal <- data[, 2]
+
+# Calculate the power spectrum using the FFT
+fft_result <- abs(fft(signal)) ^ 2 / length(signal)
+half_length <- length(fft_result) %/% 2  # Get the index for the first half
+frequencies <- seq(0, 1 / (2 * diff(time)[1]), length.out = half_length)
+
+# Plot the first half of the power spectrum
+plot(1/frequencies, fft_result[1:half_length], type = "l",
+     xlab = "Period = 1/Frequency", ylab = "Power Spectrum",
+     main = "Power Spectrum of Time Series (First Half)",
+     log="xy", pch=19, cex=0.2)
+
+
+  return(list("period" = 1/frequencies, "power" = fft_result))
+}
+```
+
+# define a high-pass filter
+```{r}
+gohipassfilter <- function(data, filter_width)
+{
+  # Create a low-pass filter using a moving average
+  low_pass_filter <- filter(data, rep(1 / filter_width, filter_width), sides =
+                              2)
+  # Subtract the low-pass filter from the original time series to get the high-pass filter
+  high_pass_filter <- data - low_pass_filter
+  return(high_pass_filter)
+}
+```
+
+
+A power spectrum of one infrasound detector
+```{r}
+par(mfrow=c(1,1))
+x <- df$time
+y <- df$I18H1  
+
+period <- 3600 # a 1-hour signal
+testsignal <- sin(2*pi/period*x)*0.0001
+y <- y + testsignal
+plot(x,y,pch=19, cex=0.2)
+res <- pth_spec(cbind(x,y))
+# then smooth
+ysmoo <- gohipassfilter(y,1800)
+plot(x,ysmoo,pch=19, cex=0.2)
+idx <- !is.na(ysmoo)
+res2 <- pth_spec(cbind(x[idx],ysmoo[idx]))
+n <- length(res2$power)
+#
+powrat <- res2$power[1:n]/res$power[1:n]
+plot(res$period[1:n],powrat,ylim=c(0,100),xlim=c(0.1,4000),log="x",type="l")
+
+
+```
