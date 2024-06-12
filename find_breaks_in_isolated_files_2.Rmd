@@ -130,75 +130,180 @@ breakfinder <- function(x, y, width) {
 # loop
 ```{r}
 
-for (ifil in 3:3) # 1:length(files))
+for (ifil in 3:3)
+  # 1:length(files))
 {
   filename <- files[ifil]
   print(filename)
-  descriptor <- strsplit(strsplit(filename,'/')[[1]][2],'.rds')[[1]][1]
+  descriptor <-
+    strsplit(strsplit(filename, '/')[[1]][2], '.rds')[[1]][1]
   df <- readRDS(filename)
   df$DateTimeUTC <- as.POSIXct(df$DateTimeUTC)
   idx <- order(df$DateTimeUTC)
-  df <- df[idx,]
+  df <- df[idx, ]
   df <- speed_calc(df)
   idx <- which(df$speed != 0)
-  df <- df[idx,]
+  df <- df[idx, ]
   #
-  par(mfrow=c(1,1))
-  modl <- Mclust(df[,c(3,2)]) #,G=Groups_wanted)
-  mclust2Dplot(df[,c(3,2)], parameters=modl$parameters,z=modl$z)
+  par(mfrow = c(1, 1))
+  modl <- Mclust(df[, c(3, 2)],G=Groups_wanted)
+  mclust2Dplot(df[, c(3, 2)], parameters = modl$parameters, z = modl$z)
   df$class <- modl$classification
   summary(modl)
   # Determine date range of each class
-  dateRange <- data.frame(Class = integer(), StartDate = as.POSIXct(character()), EndDate = as.POSIXct(character()), stringsAsFactors = FALSE)
+  dateRange <-
+    data.frame(
+      Class = integer(),
+      StartDate = as.POSIXct(character()),
+      EndDate = as.POSIXct(character()),
+      stringsAsFactors = FALSE
+    )
   for (iclust in unique(df$class)) {
     range_dates <- range(df$DateTimeUTC[df$class == iclust])
-    dateRange <- rbind(dateRange, data.frame(Class = iclust, StartDate = range_dates[1], EndDate = range_dates[2], N = length(which(df$class == iclust))))
+    dateRange <-
+      rbind(
+        dateRange,
+        data.frame(
+          Class = iclust,
+          StartDate = range_dates[1],
+          EndDate = range_dates[2],
+          N = length(which(df$class == iclust))
+        )
+      )
     
   }
   # Explicitly set timezone to UTC
-  dateRange$StartDate <- as.POSIXct(dateRange$StartDate, origin="1970-01-01", tz = "UTC")
-  dateRange$EndDate <- as.POSIXct(dateRange$EndDate, origin="1970-01-01", tz = "UTC")
+  dateRange$StartDate <-
+    as.POSIXct(dateRange$StartDate, origin = "1970-01-01", tz = "UTC")
+  dateRange$EndDate <-
+    as.POSIXct(dateRange$EndDate, origin = "1970-01-01", tz = "UTC")
   
   print(dateRange)
   # Plot Latitude
-  par(mfrow=c(2,1))
-  plot(df$DateTimeUTC, df$Latitude, type="p", main=filename, xlab="DateTimeUTC", ylab="Latitude",pch=19,cex=0.3)
+  par(mfrow = c(2, 1))
+  plot(
+    df$DateTimeUTC,
+    df$Latitude,
+    type = "p",
+    main = filename,
+    xlab = "DateTimeUTC",
+    ylab = "Latitude",
+    pch = 19,
+    cex = 0.3
+  )
   # Plot Latitude with colored segments
-  plot(df$DateTimeUTC, df$Latitude, type="n", main=filename, xlab="DateTimeUTC", ylab="Latitude",pch=19,cex=0.3)
+  plot(
+    df$DateTimeUTC,
+    df$Latitude,
+    type = "n",
+    main = filename,
+    xlab = "DateTimeUTC",
+    ylab = "Latitude",
+    pch = 19,
+    cex = 0.3
+  )
   for (i in unique(df$class)) {
-    points(df$DateTimeUTC[df$class == i], df$Latitude[df$class == i], type="p", col=i,pch=19,cex=0.3)
+    points(
+      df$DateTimeUTC[df$class == i],
+      df$Latitude[df$class == i],
+      type = "p",
+      col = i,
+      pch = 19,
+      cex = 0.3
+    )
   }
   # Plot Longitude
-  par(mfrow=c(2,1))
-  plot(df$DateTimeUTC, df$Longitude, type="p", main=filename, xlab="DateTimeUTC", ylab="Longitude",pch=19,cex=0.3)
+  par(mfrow = c(2, 1))
+  plot(
+    df$DateTimeUTC,
+    df$Longitude,
+    type = "p",
+    main = filename,
+    xlab = "DateTimeUTC",
+    ylab = "Longitude",
+    pch = 19,
+    cex = 0.3
+  )
   # Plot Longitude with colored segments
-  plot(df$DateTimeUTC, df$Longitude, type="n", main=filename, xlab="DateTimeUTC", ylab="Longitude",pch=19,cex=0.3)
+  plot(
+    df$DateTimeUTC,
+    df$Longitude,
+    type = "n",
+    main = filename,
+    xlab = "DateTimeUTC",
+    ylab = "Longitude",
+    pch = 19,
+    cex = 0.3
+  )
   for (i in unique(df$class)) {
-    points(df$DateTimeUTC[df$class == i], df$Longitude[df$class == i], type="p", col=i,pch=19,cex=0.3)
+    points(
+      df$DateTimeUTC[df$class == i],
+      df$Longitude[df$class == i],
+      type = "p",
+      col = i,
+      pch = 19,
+      cex = 0.3
+    )
   }
   # Plot speed
-  par(mfrow=c(2,1))
-  plot(df$DateTimeUTC, df$speed, type="p", main=filename, xlab="DateTimeUTC", ylab="speed", pch=19, cex=0.3, log='y')
+  par(mfrow = c(2, 1))
+  plot(
+    df$DateTimeUTC,
+    df$speed,
+    type = "p",
+    main = filename,
+    xlab = "DateTimeUTC",
+    ylab = "speed",
+    pch = 19,
+    cex = 0.3,
+    log = 'y'
+  )
   # Plot speed with colored segments
-  plot(df$DateTimeUTC, df$speed, type="n", main=filename, xlab="DateTimeUTC", ylab="speed",pch=19,cex=0.3, log='y')
+  plot(
+    df$DateTimeUTC,
+    df$speed,
+    type = "n",
+    main = filename,
+    xlab = "DateTimeUTC",
+    ylab = "speed",
+    pch = 19,
+    cex = 0.3,
+    log = 'y'
+  )
   for (i in unique(df$class)) {
-    points(df$DateTimeUTC[df$class == i], df$speed[df$class == i], type="p", col=i,pch=19,cex=0.3)
+    points(
+      df$DateTimeUTC[df$class == i],
+      df$speed[df$class == i],
+      type = "p",
+      col = i,
+      pch = 19,
+      cex = 0.3
+    )
   }
-  breaks <- as.data.frame(breakfinder2(df$DateTimeUTC,df$Longitude,24))
-  par(mfrow=c(2,1))
-  plot(breaks,type="l",main="Two-segment analysis. Derivative is red")
-  x <- breaks[,1]
-  y <- breaks[,2]
+  breaks <-
+    as.data.frame(breakfinder2(df$DateTimeUTC, df$Longitude, 24))
+  par(mfrow = c(2, 1))
+  plot(breaks, type = "l", main = "Two-segment analysis. Derivative is red")
+  x <- breaks[, 1]
+  y <- breaks[, 2]
   #lines(x[-length(x)], diff(y) / as.numeric(diff(x)), type="l",col=2)
   #plot(x, diff(y) / as.numeric(diff(x)), type="l")
-# Add the second graph
-par(new=TRUE)  # Allow new plot on top
-plot(x[-length(x)], diff(y) / as.numeric(diff(x)), type="l", col="red", axes=FALSE, xlab="", ylab="")
-
-# Add the second y-axis
-axis(side=4)  # Side 4 is the right side
+  # Add the second graph
+  par(new = TRUE)  # Allow new plot on top
+  plot(
+    x[-length(x)],
+    diff(y) / as.numeric(diff(x)),
+    type = "l",
+    col = "red",
+    axes = FALSE,
+    xlab = "",
+    ylab = ""
+  )
+  
+  # Add the second y-axis
+  axis(side = 4)  # Side 4 is the right side
   #
-  saveRDS(dateRange,paste0('OUTPUT/dateRange_',descriptor,'.rds'))
+  saveRDS(dateRange, paste0('OUTPUT/dateRange_', descriptor, '.rds'))
 } # end of ifil loop
 ```
 
