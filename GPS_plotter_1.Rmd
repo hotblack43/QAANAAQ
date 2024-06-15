@@ -21,7 +21,14 @@ colnames(df) <- c("POSIX","lon","lat")
 df$POSIX_UTC <- as.POSIXct(df$POSIX)
 idx <- which(df$lon < 100)
 df <- df[idx,]
+<<<<<<< HEAD
 
+=======
+# download the data
+ 
+#system("scp -i ~/.ssh/id_rsa pth@furthur.home:~/gps_data.txt DATA/")
+ 
+>>>>>>> feb1be7b818ee0af1bce4cc2b72a79c889f78354
 ```
 
 # define lon/lat to UTM function
@@ -71,10 +78,13 @@ dev.off()
 
 # plot against time of day
 ```{r}
-plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,df$lon,pch=19,cex=0.1)
-plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,df$lat,pch=19,cex=0.1)
-plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,easting_northing[,1]-mean(easting_northing[,1]),pch=19,cex=0.1,ylab='Easting anomaly [m]')
-plot(hour(df$POSIX_UTC)+minute(df$POSIX_UTC)/60,easting_northing[,2]-mean(easting_northing[,2]),pch=19,cex=0.1,ylab='Northing anomaly [m]')
+idx <- sample(1:nrow(df),30000,replace=FALSE)
+pdf("FIGURES/timeofday.pdf")
+plot(hour(df$POSIX_UTC[idx])+minute(df$POSIX_UTC[idx])/60,df$lon[idx],pch=19,cex=0.1)
+plot(hour(df$POSIX_UTC[idx])+minute(df$POSIX_UTC[idx])/60,df$lat[idx],pch=19,cex=0.1)
+plot(hour(df$POSIX_UTC[idx])+minute(df$POSIX_UTC[idx])/60,easting_northing[idx,1]-mean(easting_northing[idx,1]),pch=19,cex=0.1,ylab='Easting anomaly [m]')
+plot(hour(df$POSIX_UTC[idx])+minute(df$POSIX_UTC[idx])/60,easting_northing[idx,2]-mean(easting_northing[idx,2]),pch=19,cex=0.1,ylab='Northing anomaly [m]')
+dev.off()
 ```
 
  

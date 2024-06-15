@@ -1,0 +1,20 @@
+.TH extractor3.py 1 "2024-06-02" "1.0" "extractor3.py Manual"
+.SH NAME
+extractor3.py \- Parses the dag123.asc type files, downloaded from geotool as provided by VDEC. Part of the infrasound suite of codes.
+.SH SYNOPSIS
+.B extractor3.py
+Needs 'dag123.asc' type files as input which are generated with geotool, and must be in ascii format when saved.
+.SH DESCRIPTION
+Parses the dag123.asc file by looking for headers with keywords in and sets up appropriate filenames. You may well need to concatenate similar-named files since each dag123.asc type file may contain several segments from the same instrument. And remember to sort on the time axis.
+.SH OPTIONS
+
+.SH EXAMPLES
+
+.TP
+.B python3 extractor3.py
+
+
+.SH AUTHOR
+Peter Thejll
+.SH SEE ALSO
+~/WORKSHOP/QAANAAQ/DATA

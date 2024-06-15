@@ -1,0 +1,157 @@
+---
+title: "Detect jumps in lon or lat or speed and tabulate - using mclust on more than 2 variables"
+output: 
+  pdf_document: 
+    fig_height: 8
+---
+
+
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(lubridate)
+library(geosphere) 
+library(dplyr)
+library(MASS)
+library(mclust)
+library(GGally)
+library(segmented)
+files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
+idx <- grep('dateRange',files)
+files <- files[-idx]
+#
+Groups_wanted <- 5+1
+```
+
+# define calculate speeds function
+```{r}
+speed_calc <- function(df_her) {
+  # Initialize the speed vector
+  speed <- numeric(nrow(df_her) - 1)
+  
+  # Calculate the time differences
+  time_diff <- as.numeric(difftime(df_her$DateTimeUTC[-1], df_her$DateTimeUTC[-nrow(df_her)], units = "secs"))
+  
+  # Loop through each time point
+  for (itime in 1:(nrow(df_her) - 1)) {
+    distance <- distHaversine(cbind(df_her$Longitude[itime], df_her$Latitude[itime]),
+                              cbind(df_her$Longitude[itime + 1], df_her$Latitude[itime + 1]),
+                              r = 6378137)
+    speed[itime] <- (distance / time_diff[itime]) # m/sec
+    
+  }
+  #speed <- speed_calc(df)
+  speed <- c(speed,speed[length(speed)]*NA)
+  df_ny <- cbind(df_her,speed)
+  
+  return(df_ny)
+}
+```
+
+
+# define break finder with 'two-windows whole-length' fits
+```{r}
+# Define break finder function
+breakfinder2 <- function(x, y, buffer) {
+  # INPUTS: x, y - the series
+  #         buffer - how long (in points) the two adjacent windows are
+  
+  # Validate inputs
+  if (length(x) != length(y)) stop("x and y must be of the same length")
+  if (buffer <= 0 || buffer >= length(y)) stop("Invalid buffer")
+  
+  # Initialize the results list
+  listen <- data.frame(
+    x = x,
+    rmse = rep(NA, length(y))
+  )
+  
+  for (ipos in (buffer + 1):(length(y) - buffer - 1)) {
+    idx <- which( x <= x[ipos]) # from start to ipos-1
+    jdx <- which( x > x[ipos] ) # from ipos to end
+    
+    # Fit both segments
+    rlm_fit1 <- lm(y[idx] ~ x[idx])
+    rlm_fit2 <- lm(y[jdx] ~ x[jdx])
+    
+    # Calculate the mean squared error (MSE)
+    mse1 <- mean((y[idx] - rlm_fit1$fitted.values)^2)
+    mse2 <- mean((y[jdx] - rlm_fit2$fitted.values)^2)
+    mse <- mse1 + mse2
+    rmse <- sqrt(mse)
+    
+    # Store the result
+    listen$rmse[ipos] <- rmse
+  }
+  
+  return(listen)
+}
+```
+
+
+# define iterated breask detection
+```{r}
+iterate_breaks <- function(datain)
+{
+  listofbreaks <- NULL
+  niter <- 5
+  buffer <- 24
+  x <- datain[,1]
+  y <- datain[,2]
+  for (iter in 1:niter)
+  {
+    # Step 3: Fit an initial linear model
+    lmfit <- lm(y ~ x)
+    plot(x,y)
+    # Step 4: Fit the piecewise linear model
+    # Specify the initial guesses for the breakpoints (psi)
+    # Here we provide a single initial guess; you can provide more for more breakpoints
+    #segfit <- segmented(lmfit, seg.Z = ~x)
+    o <-segmented(lmfit,seg.Z=~x, npsi=7, control=seg.control(display=FALSE))
+    lines(x,o$fitted.values,col=2,lwd=3)
+    # find largest jump from derivative of fitted model
+    deriv <- diff(y)/as.numeric(diff(x))
+    plot(datain[1:(nrow(datain)-1),1],deriv)
+    breakat <- x[which(abs(deriv) == max(abs(deriv)))]
+    browser()
+    
+    
+    
+    y <- y/o$fitted.values
+ 
+ 
+browser()
+  }
+ 
+  return(listofbreaks)
+}
+```
+
+
+
+# loop
+```{r}
+
+for (ifil in 3:3) # 1:length(files))
+{
+  filename <- files[ifil]
+  print(filename)
+  descriptor <- strsplit(strsplit(filename,'/')[[1]][2],'.rds')[[1]][1]
+  df <- readRDS(filename)
+  df$DateTimeUTC <- as.POSIXct(df$DateTimeUTC)
+  df$justtime <- as.numeric(df$DateTimeUTC)
+  idx <- order(df$DateTimeUTC)
+  df <- df[idx,]
+  df <- speed_calc(df)
+  idx <- which(df$speed != 0)
+  df <- df[idx,]
+  # detect breaks using two fitted lines
+  data <- df[,c("justtime","Longitude")]
+  data <- df[,c("DateTimeUTC","Longitude")]
+  hej <- iterate_breaks(data)
+  print(hej)
+} # end of ifil loop
+```
+
+

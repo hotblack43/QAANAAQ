@@ -1,5 +1,5 @@
 ---
-title: "Detect jumps in lon or lat or speed and tabulate 1"
+title: "Detect jumps in lon or lat or speed and tabulate - using mclust"
 output: 
   pdf_document: 
     fig_height: 8
@@ -19,7 +19,7 @@ files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
 idx <- grep('dateRange',files)
 files <- files[-idx]
 #
-Groups_wanted <- 7
+Groups_wanted <- 5
 ```
 
 # define calculate speeds function
@@ -130,7 +130,7 @@ breakfinder <- function(x, y, width) {
 # loop
 ```{r}
 
-for (ifil in 1:length(files))
+for (ifil in 3:3) # 1:length(files))
 {
   filename <- files[ifil]
   print(filename)

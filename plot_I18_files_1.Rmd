@@ -1,0 +1,50 @@
+---
+title: "Plot data from I18"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+The input files here were generated with a bash script from the dag123.asc file downloaded using the geotool provided by VDEC.
+ 
+```{r}
+rm(list = ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+#
+files <- c(
+  "DATA/I18H1_BDF_1727999.txt",
+  "DATA/I18H2_BDF_1727999.txt",
+  "DATA/I18H3_BDF_1727999.txt",
+  "DATA/I18H4_BDF_1727999.txt",
+  "DATA/I18L1_BDF_1727999.txt",
+  "DATA/I18L2_BDF_1727999.txt",
+  "DATA/I18L3_BDF_1091200.txt",
+  "DATA/I18L4_BDF_1727999.txt"
+)
+```
+
+# plot in panel
+```{r}
+# Initialize samlet as an empty data frame
+samlet <- data.frame(time = numeric())
+
+# Loop through files
+for (fil in files) {
+  varnam <- strsplit(strsplit(fil, '/')[[1]][2], '_')[[1]][1]
+  df <- read.csv(fil, sep = "", header = FALSE)
+  colnames(df) <- c("time", varnam)
+  df[, 2] <- df[, 2] / 10000
+  #plot(df, type = "l")
+  
+  # Merge with samlet
+  samlet <- merge(samlet, df, by = "time", all = TRUE)
+}
+# Assuming 'samlet' is your merged data frame
+samlet$POSIX <- as.POSIXct(samlet$time, origin = "1970-01-01", tz = "UTC") 
+saveRDS(samlet,'OUTPUT/calving_2022123.rds')
+
+
+```
+
+
+ 
