@@ -19,7 +19,7 @@ files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
 idx <- grep('dateRange',files)
 files <- files[-idx]
 #
-Groups_wanted <- 5
+Groups_wanted <- 6
 ```
 
 # define calculate speeds function
