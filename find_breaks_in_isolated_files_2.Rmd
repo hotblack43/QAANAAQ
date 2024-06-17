@@ -19,7 +19,7 @@ files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
 idx <- grep('dateRange',files)
 files <- files[-idx]
 #
-Groups_wanted <- 6
+Groups_wanted <- 5
 ```
 
 # define calculate speeds function
@@ -146,7 +146,7 @@ for (ifil in 3:3)
   df <- df[idx, ]
   #
   par(mfrow = c(1, 1))
-  modl <- Mclust(df[, c(3, 2)],G=Groups_wanted)
+  modl <- Mclust(df[, c( 3, 2)]) #,G=Groups_wanted)
   mclust2Dplot(df[, c(3, 2)], parameters = modl$parameters, z = modl$z)
   df$class <- modl$classification
   summary(modl)
