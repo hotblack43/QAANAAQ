@@ -21,10 +21,14 @@ colnames(df) <- c("POSIX","lon","lat")
 df$POSIX_UTC <- as.POSIXct(df$POSIX)
 idx <- which(df$lon < 100)
 df <- df[idx,]
+<<<<<<< HEAD
+
+=======
 # download the data
  
 #system("scp -i ~/.ssh/id_rsa pth@furthur.home:~/gps_data.txt DATA/")
  
+>>>>>>> feb1be7b818ee0af1bce4cc2b72a79c889f78354
 ```
 
 # define lon/lat to UTM function
