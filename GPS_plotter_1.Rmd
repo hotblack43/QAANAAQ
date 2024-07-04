@@ -42,8 +42,19 @@ convert_to_utm <- function(lon, lat) {
 
 # convert
 ```{r}
-easting_northing <- convert_to_utm(df$lon, df$lat)
+easting_northing <- as.data.frame(convert_to_utm(df$lon, df$lat))
 colnames(easting_northing) <- c("easting","northing")
+```
+
+# find outliers, report, and remove
+```{r}
+idx <- which((easting_northing$easting-mean(easting_northing$easting)) > 5*sd(easting_northing$easting))
+print(c("easting way off for ",df$POSIX[idx]))
+
+idx <- which((easting_northing$northing-mean(easting_northing$northing)) > 5*sd(easting_northing$northing))
+print(c("northing way off for ",df$POSIX[idx]))
+df <- df[-idx,]
+easting_northing <- easting_northing[-idx,]
 ```
 
 
@@ -62,7 +73,7 @@ png("FIGURES/logging_lon_lat.png")
 par(mfrow=c(2,2))
 plot(df$lon,df$lat,pch=19,cex=0.1)
 plot(df$POSIX_UTC,df$lon,pch=19,cex=0.1)
-plot(df$POSIX_UTC,df$lat,pch=19,cex=0.1, ylim=c(mean(df$lat)+.002,mean(df$lat)-.002))
+plot(df$POSIX_UTC,df$lat,pch=19,cex=0.1, ylim=c(mean(df$lat)+.004,mean(df$lat)-.004))
 abline(h=mean(df$lat,na.rm=T),col=2,lwd=2)
 plot(easting_northing,pch=19,cex=0.1,asp=1)
 
