@@ -82,7 +82,7 @@ dev.off()
 
 # plot against time of day
 ```{r}
-idx <- sample(1:nrow(df),30000,replace=FALSE)
+idx <- sample(1:nrow(df),60000,replace=FALSE)
 pdf("FIGURES/timeofday.pdf")
 plot(hour(df$POSIX_UTC[idx])+minute(df$POSIX_UTC[idx])/60,df$lon[idx],pch=19,cex=0.1)
 plot(hour(df$POSIX_UTC[idx])+minute(df$POSIX_UTC[idx])/60,df$lat[idx],pch=19,cex=0.1)
