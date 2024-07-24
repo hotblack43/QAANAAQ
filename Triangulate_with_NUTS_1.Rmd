@@ -73,7 +73,7 @@ data {
 parameters {
   real<lower=10, upper=1000> easting_source;  // source easting
   real<lower=2000, upper=9000> northing_source;  // source northing
-  real<lower=0, upper=100> height_source;    // source height
+  real<lower=0, upper=140> height_source;    // source height
   real<lower=-700, upper=0> t0;              // time offset
 }
 
@@ -104,7 +104,7 @@ options(mc.cores = num_cores)
 
 # Compile the Stan model and sample using NUTS
 stan_fit <- stan(model_code = stan_model, data = stan_data, 
-                 iter = 4*12000, warmup = 4000, chains = 4, thin = 10, control = list(max_treedepth = 12, adapt_delta=0.95))
+                 iter = 8*12000, warmup = 3*4000, chains = 4, thin = 10, control = list(max_treedepth = 12, adapt_delta=0.95))
 # Assuming stan_fit is your fitted Stan model object
 saveRDS(stan_fit, file = "OUTPUT/MODELS/fitted_stan_model.rds")
 
