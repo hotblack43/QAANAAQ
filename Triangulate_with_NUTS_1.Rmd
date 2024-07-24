@@ -1,0 +1,148 @@
+---
+title: "STAN with NUTS on Triangulation"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+
+```{r}
+# Clear environment and set working directory
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(nleqslv)
+library(sp)
+library(lubridate)
+library(oce)
+library(nloptr)
+library(maps)
+library(ggplot2)
+library(ggmap)
+library(parallel)
+library(sf)
+library(e1071)
+library(astrochron)
+library(rstan)
+library(bayesplot)
+# Constants
+c <- 343 / 1000  # speed of sound in km/s
+
+# Load data
+df <- read.csv("DATA/offsets.txt", header=TRUE, sep=",")
+coords <- read.csv("DATA/coordinates.txt", header=TRUE, sep=",")
+
+# Merge the data frames by the "Station" column
+merged_df <- merge(df, coords, by = "Station", all = TRUE)
+df <- merged_df
+
+# Plot coordinates
+plot(coords$Longitude, coords$Latitude, pch=4)
+text(coords$Longitude, coords$Latitude, coords$Station)
+
+# Create a SpatialPoints object
+points <- SpatialPoints(cbind(df$Longitude, df$Latitude), proj4string = CRS("+proj=longlat +ellps=WGS84"))
+
+# Define the target projection
+target_projection <- "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+# Transform the coordinates to the target projection
+transformed_points <- spTransform(points, CRS(target_projection))
+
+# Extract the easting and northing in km
+df$easting <- transformed_points@coords[,1] / 1000
+df$northing <- transformed_points@coords[,2] / 1000
+
+plot(df$easting, df$northing, asp=1, xlab="Easting [km]", ylab="Northing [km]", pch=19, cex=0.5)
+
+# Calculate easting and northing of known BANG position
+source <- SpatialPoints(cbind(-69.0, 76.9), proj4string = CRS("+proj=longlat +ellps=WGS84"))
+transformed_points_source <- spTransform(source, CRS(target_projection))
+source_easting <- transformed_points_source@coords[,1] / 1000  # in km
+source_northing <- transformed_points_source@coords[,2] / 1000
+
+# Define Stan model as a string
+stan_model <- "
+data {
+  int<lower=0> N;               // number of data points
+  vector[N] t_offset;           // observed times
+  vector[N] easting;            // station eastings
+  vector[N] northing;           // station northings
+  real c;                       // speed of sound in km/s
+}
+
+parameters {
+  real<lower=0, upper=8000> easting_source;  // source easting
+  real<lower=5000, upper=9000> northing_source;  // source northing
+  real<lower=0, upper=100> height_source;    // source height
+  real<lower=-500, upper=0> t0;              // time offset
+}
+
+model {
+  vector[N] predicted_times;
+  for (i in 1:N) {
+    predicted_times[i] = t0 + sqrt(square(easting[i] - easting_source) + 
+                                   square(northing[i] - northing_source) + 
+                                   square(height_source)) / c;
+  }
+  
+  t_offset ~ normal(predicted_times, 0.05);  // times are observed to nearest 1/20th s only, but estimation from curves also adds something
+}
+"
+
+# Prepare data for Stan
+stan_data <- list(
+  N = nrow(df),
+  t_offset = df$t_offset,
+  easting = df$easting,
+  northing = df$northing,
+  c = c
+)
+
+# Detect number of available cores
+num_cores <- detectCores()
+options(mc.cores = num_cores)
+
+# Compile the Stan model and sample using NUTS
+stan_fit <- stan(model_code = stan_model, data = stan_data, 
+                 iter = 4*12000, warmup = 4000, chains = 8, thin = 50, control = list(max_treedepth = 20))
+
+# Print summary of the fit
+print(stan_fit)
+
+# Extract samples
+post.samp <- extract(stan_fit)
+
+#--------------------------------------------------------------------------------------------------
+# Analyze results
+med_easting <- median(post.samp$easting_source)
+med_northing <- median(post.samp$northing_source)
+med_height <- median(post.samp$height_source)
+med_t0 <- median(post.samp$t0)
+print(c('Median chain values : ', med_easting, med_northing, med_height, med_t0))
+
+# Function to calculate predicted times
+calculate_predicted_times <- function(easting, northing, height, t0, y, X, c) {
+  predicted_times <- numeric(length(X$V2))
+  for (i in 1:length(X$V2)) {
+    predicted_times[i] <- t0 + sqrt((X$V2[i] - easting) ^ 2 + (X$V3[i] - northing) ^ 2 + (0 - height) ^ 2) / c
+  }
+  return(predicted_times)
+}
+
+# Calculate predicted times from median values
+y <- as.data.frame(df$t_offset)
+X <- as.data.frame(cbind(1, df$easting, df$northing))
+pred_times <- calculate_predicted_times(med_easting, med_northing, med_height, med_t0, y, X, c)
+print(c('Predicted times from median parameter values: ', pred_times))
+
+# Calculate residuals
+residuals <- df$t_offset - pred_times
+print(c('Residuals: ', residuals, ' s. RMSE = ', sqrt(sum(residuals^2)), ' s.'))
+
+# Plot the chains
+
+mcmc_pairs(as.array(stan_fit), pars = c("easting_source", "northing_source", "height_source", "t0"))
+
+```
+ 
+ 
