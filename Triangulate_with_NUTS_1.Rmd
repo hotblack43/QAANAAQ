@@ -71,10 +71,10 @@ data {
 }
 
 parameters {
-  real<lower=0, upper=8000> easting_source;  // source easting
-  real<lower=5000, upper=9000> northing_source;  // source northing
+  real<lower=10, upper=1000> easting_source;  // source easting
+  real<lower=2000, upper=9000> northing_source;  // source northing
   real<lower=0, upper=100> height_source;    // source height
-  real<lower=-500, upper=0> t0;              // time offset
+  real<lower=-700, upper=0> t0;              // time offset
 }
 
 model {
@@ -104,11 +104,13 @@ options(mc.cores = num_cores)
 
 # Compile the Stan model and sample using NUTS
 stan_fit <- stan(model_code = stan_model, data = stan_data, 
-                 iter = 4*12000, warmup = 4000, chains = 8, thin = 50, control = list(max_treedepth = 20))
+                 iter = 4*12000, warmup = 4000, chains = 4, thin = 10, control = list(max_treedepth = 12, adapt_delta=0.95))
+# Assuming stan_fit is your fitted Stan model object
+saveRDS(stan_fit, file = "OUTPUT/MODELS/fitted_stan_model.rds")
 
 # Print summary of the fit
 print(stan_fit)
-
+plot(stan_fit)
 # Extract samples
 post.samp <- extract(stan_fit)
 
@@ -140,8 +142,12 @@ residuals <- df$t_offset - pred_times
 print(c('Residuals: ', residuals, ' s. RMSE = ', sqrt(sum(residuals^2)), ' s.'))
 
 # Plot the chains
-
-mcmc_pairs(as.array(stan_fit), pars = c("easting_source", "northing_source", "height_source", "t0"))
+# Plot trace for all chains of a specific parameter
+traceplot(stan_fit, pars = c("easting_source", "northing_source", "height_source", "t0"))
+#plot the distros
+mcmc_pairs(as.array(stan_fit), pars = c("easting_source", "northing_source", "height_source", "t0"),
+             off_diag_args = list(size = 0.1),  # Adjust the size of the points in the scatterplots
+  diag_fun = "hist")  # Optional: Specify the type of plot on the diagonal)
 
 ```
  
