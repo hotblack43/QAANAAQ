@@ -21,7 +21,7 @@ window_length <- 120*2
 # in s? or points?
 filter_width <-  5
 #
-df <- readRDS("OUTPUT/calving_2022123.rds")
+df <- readRDS("OUTPUT/calving_2022123.rds") # May 3rd 2022
 df$POSIX <- as.POSIXct(df$POSIX, tz="UTC")
 cnams <- colnames(df)
 ```
