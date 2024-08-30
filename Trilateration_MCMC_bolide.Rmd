@@ -146,8 +146,8 @@ log_merit_function <- function(parameters, y, X) {
 # MCMC
 ```{r}
 
-# Set up MCMC sampler
-n_iter <- 100000  # Number of iterations
+# Set up MCMC sampler 
+n_iter <- 10000  # Number of iterations
 n_burn <- 2000  # Number of burn-in iterations
 initial_guess <- c(xx = 515, yy = 8545, zz = 61, t0 = -245)  # Initial guess with RMSE=0.34 s
 initial_guess <- c(xx = 535, yy = 8506, zz = 90, t0 = -397)  # Initial guess with RMSE=0.31 s

@@ -177,10 +177,10 @@ ga_parameters <- list(type = "real-valued",
                       popSize = Npop,  # Population size
                       pcrossover = 0.8,  # Crossover probability
                       pmutation = 0.1,   # Mutation probability
-                      maxiter = 1000)  # Number of generations
+                      maxiter = 100)  # Number of generations
 y <- as.data.frame(df$t_offset)
 X <- as.data.frame(cbind(1, df$easting, df$northing))
-
+ 
 # Run the genetic algorithm
 result <- ga(type = ga_parameters$type,
              fitness = ga_parameters$fitness,
