@@ -1,0 +1,15 @@
+---
+title: "Simple I18 plotter"
+output: 
+  pdf_document: 
+    fig_height: 8
+---
+
+Make simple signal plots 
+
+```{r}
+rm(list=ls())
+setwed("~/WORKSHOP/QAANAAQ/")
+```
+
+ 
