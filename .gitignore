@@ -17,4 +17,6 @@ DATA/I18*
 DATA/dag123.asc
 *.rds
 *.txt
+*.log
+*.tex
  
