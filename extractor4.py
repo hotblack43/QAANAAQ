@@ -5,6 +5,7 @@ import os
 #input_file = "/home/pth/WORKSHOP/QAANAAQ/DATA/i18dk2022123.asc"
 nlines = 3
 input_file = "/dmidata/users/nje/Work/Infrasound/Datafiles/i18dk2023259.asc"
+input_file = "/dmidata/users/nje/Work/Infrasound/Datafiles/I18DK2024093.asc"
 nlines = 4 #3 # see the number of alpha lines in the input file, could be 4 or 3
 
 # Initialize variables
@@ -50,7 +51,7 @@ with open(input_file, 'r') as f:
         
         # Increment count
         count += 1
-        print(count)
+        #print(count)
         # If collected the required number of samples, process the block
 #       if count == (nsamp + 4):
         if count == (nsamp + nlines):
