@@ -14,7 +14,7 @@ options(digits.secs = 3)
 setwd("~/WORKSHOP/QAANAAQ/")
 #files <- list.files(path="DATA/HP/",pattern='.txt',full.names = TRUE)
 files <- list.files(path="DATA",pattern = "I18.*\\.txt",full.names = TRUE)
-sensornames <- c("H2", "H3", "H4", "L1", "L2", "L3", "L4") # Note that 'H1' is assumed
+sensornames <- c("H2", "H3", "H4", "L1", "L2", "L3", "L4") # Note that 'H1' is assumed to be present
 ```
 
 # collect and merge etc
@@ -226,7 +226,6 @@ print(best_info)
 
 # Extracting lags
 best_lags <- as.numeric(best_info[2:8])  # Extract only the lags (H2 to L4)
-sensor_names <- c("H1", "H2", "H3", "H4", "L1", "L2", "L3", "L4")  # Define sensor names
 
 # Create a data frame for output
 output_df <- data.frame(
