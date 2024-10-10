@@ -1,0 +1,252 @@
+---
+title: "Find the time offsets between sensor series"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+
+
+```{r}
+rm(list=ls())
+library(lubridate)
+options(digits.secs = 3)
+setwd("~/WORKSHOP/QAANAAQ/")
+#files <- list.files(path="DATA/HP/",pattern='.txt',full.names = TRUE)
+files <- list.files(path="DATA",pattern = "I18.*\\.txt",full.names = TRUE)
+sensornames <- c("H2", "H3", "H4", "L1", "L2", "L3", "L4") # Note that 'H1' is assumed
+```
+
+# collect and merge etc
+```{r}
+all_df <- NULL
+for (i in 1:length(files))
+{
+  ifil <- files[i]
+  # Extract the "H8" part using a regular expression
+  sensor <- sub(".*([A-Z]\\d{1,2}).*", "\\1", ifil)
+  df <- read.csv(ifil,sep="")
+  df$POSIX <- as.POSIXct(df[,1], origin = "1970-01-01", tz = "UTC")
+  df <- df[,c(3,2)]
+  colnames(df) <- c("POSIX",sensor)
+  
+  if (i == 1) {all_df <- df}
+  else
+  {all_df <- merge(all_df,df,by="POSIX",all=TRUE)}
+}
+all_df <- unique(na.omit(all_df))
+idx <- order(all_df$POSIX)
+all_df <- all_df[idx,]
+#saveRDS(all_df,"OUTPUT/HolgerEvent.rds")
+saveRDS(all_df,"OUTPUT/BolideEvent.rds")
+```
+
+```{r}
+bestlag <- function(df, sensornames) {
+  # Calculate the time difference between consecutive rows (in seconds)
+  time_diff <- as.numeric(difftime(df$POSIX[2], df$POSIX[1], units = "secs"))
+  
+  # Initialize vectors to store the best lags in seconds and the corresponding max correlations
+  best_lags_in_seconds <- numeric(length(sensornames))
+  best_ccf_values <- numeric(length(sensornames))
+  
+  # Loop through the specified sensor names
+  for (i in seq_along(sensornames)) {
+    sensor <- sensornames[i]
+    
+    # Perform cross-correlation between H1 and the current sensor column
+    ccf_result <- ccf(df$H1, df[[sensor]], plot = FALSE)
+    
+    # Find the lag that maximizes the correlation
+    best_lag_index <- which.max(abs(ccf_result$acf))
+    best_lag <- ccf_result$lag[best_lag_index]
+    
+    # Convert the lag to seconds by multiplying with time difference per row
+    best_lag_in_seconds <- best_lag * time_diff
+    
+    # Extract the maximum cross-correlation value at the best lag
+    best_ccf_value <- ccf_result$acf[best_lag_index]
+    
+    # Store the best lag in seconds and the max correlation for this sensor
+    best_lags_in_seconds[i] <- best_lag_in_seconds
+    best_ccf_values[i] <- best_ccf_value
+    
+    # Print the best lag in seconds and the max cross-correlation for the corresponding sensor
+    cat("Best lag for", sensor, "is", best_lag_in_seconds, "seconds with a max correlation of", best_ccf_value, "\n")
+  }
+  
+  # Combine best lags and best correlations into a 2-column matrix
+  result <- cbind(best_lags_in_seconds, best_ccf_values)
+  colnames(result) <- c("Best Lag (seconds)", "Max Correlation")
+  rownames(result) <- sensornames
+  
+  return(result)
+}
+
+```
+
+
+# Define function to calculate best lag between H1 and the others
+```{r}
+bestlag2 <- function(df,sensornames)
+{
+  # Calculate the time difference between consecutive rows (in seconds)
+  time_diff <- as.numeric(difftime(df$POSIX[2], df$POSIX[1], units = "secs"))
+  
+  # Initialize lists to store the best lags in seconds and the corresponding max correlations
+  best_lags_in_seconds <- list()
+  best_ccf_values <- list()
+  
+  # Loop through columns H2 to H8
+  # for (sensor in c("H2", "H3", "H4", "H5", "H6", "H7", "H8")) {
+  # for (sensor in c("H2", "H3", "H4", "L1", "L2", "L3", "L4")) {
+  for (sensor in sensornames) {
+    # Perform cross-correlation between H1 and the current sensor column
+    ccf_result <- ccf(df$H1, df[[sensor]], plot = FALSE)
+    
+    # Find the lag that maximizes the correlation
+    best_lag_index <- which.max(abs(ccf_result$acf))
+    best_lag <- ccf_result$lag[best_lag_index]
+    
+    # Convert the lag to seconds by multiplying with time difference per row
+    best_lag_in_seconds <- best_lag * time_diff
+    
+    # Extract the maximum cross-correlation value at the best lag
+    best_ccf_value <- ccf_result$acf[best_lag_index]
+    
+    # Store the best lag in seconds and the max correlation for this sensor
+    best_lags_in_seconds[[sensor]] <- best_lag_in_seconds
+    best_ccf_values[[sensor]] <- best_ccf_value
+    
+    # Print the best lag in seconds and the max cross-correlation for the corresponding sensor
+    cat("Best lag for", sensor, "is", best_lag_in_seconds, "seconds with a max correlation of", best_ccf_value, "\n")
+  }
+}
+```
+
+
+```{r}
+best_rms_R <- -1e12
+#df <- readRDS("OUTPUT/HolgerEvent.rds")
+df <- readRDS("OUTPUT/BolideEvent.rds")
+# Define the start and end times for the overall range
+#start_time <- as.POSIXct(min(df$POSIX), tz = "UTC")
+#end_time <- as.POSIXct(max(df$POSIX), tz = "UTC")
+
+start_time <- as.POSIXct(paste(2022, 05, 03, 5, 1, 1), 
+                         format = "%Y %m %d %H %M %S", 
+                         tz = "UTC")
+end_time <- as.POSIXct(paste(2022, 05, 03, 10, 1, 1), 
+                       format = "%Y %m %d %H %M %S", 
+                       tz = "UTC")
+
+
+
+# Define the size of the window and the step size
+window_size <- as.difftime(15, units = "mins")  # 10 minutes window size
+step_size <- as.difftime(7.5, units = "mins")     # Slide by 5 minutes
+
+# Initialize current time
+current_time <- start_time
+print("------------------------------------------")
+# Loop through the time range using a sliding window
+pdf("FIGURES/panels.pdf")
+while (current_time + window_size <= end_time) {
+  par(mfrow=c(4,2))
+  
+  # Define window start and window end times
+  window_start <- current_time
+  window_end <- current_time + window_size
+  # Step 2: Calculate the average
+  # Step 1: Convert POSIXct times to numeric (seconds since epoch)
+  num_window_start <- as.numeric(window_start)
+  num_window_end <- as.numeric(window_end)
+  
+  # Step 2: Calculate the average
+  average_num_time <- (num_window_start + num_window_end) / 2
+  
+  # Step 3: Convert the average back to POSIXct
+  average_time <- as.POSIXct(average_num_time, origin = "1970-01-01", tz = "UTC")
+  
+  
+  # Extract rows from data that fall within the current window
+  rows_in_window <- df[df$POSIX >= window_start & df$POSIX < window_end, ]
+  
+  # Loop over sensor columns and plot
+  # for (sensor in c("H2", "H3", "H4", "H5", "H6", "H7", "H8")) {
+  for (sensor in sensornames) {
+    # Dynamically access the column using double brackets [[ ]]
+    plot(rows_in_window$POSIX, rows_in_window[[sensor]], 
+         ylim = range(df[[sensor]], na.rm = TRUE), 
+         ylab = sensor, xlab = "Time", pch=19, cex=0.2, main=paste(window_start,' to ',window_end))
+  }
+  
+  # calculate the max cross-correlation between the 8 series-segments, using H1 as the reference
+  #bestlag(rows_in_window)
+  resu <- bestlag(rows_in_window,sensornames)
+  rms_R <- sqrt(mean(resu[,2]^2))
+  if (rms_R > best_rms_R) {
+    best_rms_R <- rms_R
+    
+    # Initialize best_info as a character vector to hold human-readable times
+    best_info <- character(length = 1 + nrow(resu) * 2 + 1)
+    
+    # Assign the average time as a human-readable string
+    best_info[1] <- format(average_time, "%Y-%m-%d %H:%M:%S", tz = "UTC")  # Human-readable format
+    
+    # Assign best lags and best correlations
+    best_info[2:(nrow(resu) + 1)] <- resu[, 1]  # Best lags
+    best_info[(nrow(resu) + 2):(2 * nrow(resu) + 1)] <- resu[, 2]  # Best correlations
+    
+    # Assign the additional value (e.g., best_rms_R)
+    best_info[length(best_info)] <- best_rms_R
+    
+    # Optionally set names for clarity
+    names(best_info) <- c("Average Time", 
+                          paste0("Best Lag (", rownames(resu), ")"), 
+                          paste0("Max Correlation (", rownames(resu), ")"), 
+                          "Best RMS R")
+    print(paste("best so far: ",best_info))
+  }
+  
+  
+  # Update current time to the next step
+  current_time <- current_time + step_size
+  print("------------------------------------------")
+}
+dev.off()
+print(best_info)
+```
+
+
+# Save offsets in file for trainagulation
+```{r}
+# Assuming best_info is already populated as per your structure
+
+
+# Extracting lags
+best_lags <- as.numeric(best_info[2:8])  # Extract only the lags (H2 to L4)
+sensor_names <- c("H1", "H2", "H3", "H4", "L1", "L2", "L3", "L4")  # Define sensor names
+
+# Create a data frame for output
+output_df <- data.frame(
+  Station = sensornames,
+  t_offset = best_lags
+)
+# Add H1 with a lag of 0.0 to the output data frame
+output_df <- rbind(data.frame(Station = "H1", t_offset = 0.0), output_df)
+
+# Format the data frame for output
+output_df <- output_df[order(output_df$Station), ]  # Sort by station names if needed
+
+# Print only the sensor names and time offsets without quotes
+for (i in 1:nrow(output_df)) {
+  cat(output_df$Station[i], ",", output_df$t_offset[i], "\n")
+}
+
+# Optional: Write to CSV without quotes and only the necessary columns
+write.csv(output_df[, c("Station", "t_offset")], "sensor_offsets.csv", row.names = FALSE, quote = FALSE)
+
+```
+
+
