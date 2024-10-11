@@ -6,10 +6,16 @@ import os
 nlines = 3
 input_file = "/dmidata/users/nje/Work/Infrasound/Datafiles/i18dk2023259.asc"
 input_file = "/dmidata/users/nje/Work/Infrasound/Datafiles/I18DK2024093.asc"
+input_file = "/dmidata/projects/nckf/earthshine/Infrasound/HONGATONGA/I18DK2022016.asc"
+input_file = "/dmidata/projects/nckf/earthshine/Infrasound/HONGATONGA/I18DK2022015.asc"
+input_file = "/dmidata/projects/nckf/earthshine/Infrasound/HOLGEREVENT/I18DK2024093.asc"
+input_file = "/dmidata/projects/nckf/earthshine/Infrasound/DICKSON/I18DK2023259.asc"
+input_file = "/dmidata/projects/nckf/earthshine/Infrasound/BJORNO/I18DK2022070.asc"
+input_file = "/dmidata/projects/nckf/earthshine/Infrasound/BJORNO/I37NO2022070.asc"
 nlines = 4 #3 # see the number of alpha lines in the input file, could be 4 or 3
 
 # Initialize variables
-output_dir = "./"
+output_dir = "/dmidata/projects/nckf/earthshine/Infrasound/BJORNO/NO2022070/"
 os.makedirs(output_dir, exist_ok=True)
 
 sta = ""

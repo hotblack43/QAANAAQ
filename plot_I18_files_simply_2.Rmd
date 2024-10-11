@@ -1,5 +1,5 @@
 ---
-title: "Simple I18 plotter"
+title: "Simple infrasound plotter"
 output: 
   pdf_document: 
     fig_height: 8
@@ -10,8 +10,9 @@ Make simple signal plots
 ```{r}
 rm(list=ls())
 setwd("~/WORKSHOP/QAANAAQ/")
+datapath <- "/dmidata/projects/nckf/earthshine/Infrasound/BJORNO/NO2022070/"
 #
-files <- list.files(path="OUTPUT",pattern="I18H.*_BDF_.*\\.txt",full.names = T)
+files <- list.files(path=datapath,pattern="37H\\d_BDF_.*\\.txt",full.names = T)
 for (infilename in files)
 {
   df <- read.csv(infilename,sep="",header=F)
@@ -20,6 +21,20 @@ for (infilename in files)
   df$posix_time <- as.POSIXct(df$unixtime, origin="1970-01-01", tz="UTC")
   # plot
   plot(df$posix_time,df$signal,pch=19,cex=0.1,xlab="Date",ylab='Sensor signal',main=infilename)
+  print(c(nrow(df),infilename))
+}
+```
+# plot detaljer
+```{r}
+for (infilename in files)
+{
+  df <- read.csv(infilename,sep="",header=F)
+  colnames(df) <- c("unixtime","signal")
+  # Convert Unix time to POSIXct
+  df$posix_time <- as.POSIXct(df$unixtime, origin="1970-01-01", tz="UTC")
+  # plot
+  plot(df$posix_time,df$signal,pch=19,cex=0.1,xlab="Date",ylab='Sensor signal',main=infilename, 
+       xlim=c(as.POSIXct("2022-03-11 12:00:00"), as.POSIXct("2022-03-11 24:00:00")))
   print(c(nrow(df),infilename))
 }
 ```
