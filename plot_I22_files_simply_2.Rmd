@@ -13,8 +13,9 @@ setwd("~/WORKSHOP/QAANAAQ/")
 datapath <- "/dmidata/projects/nckf/earthshine/Infrasound/I22FR/"
 #
 #files <- list.files(path=datapath,pattern="37H\\d_BDF_.*\\.txt",full.names = T)
-#files <- list.files(path=datapath,pattern="22H1*",full.names = T)
-files <- "/dmidata/projects/nckf/earthshine/Infrasound/I22FR//22H1_BDF_1727999.txt"
+# List all files matching the pattern
+files <- list.files(path=datapath, pattern="^I22.*_BDF_.*\\.txt$", full.names=TRUE)
+
 for (infilename in files)
 {
   df <- read.csv(infilename,sep="",header=F)
