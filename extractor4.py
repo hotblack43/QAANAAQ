@@ -13,11 +13,14 @@ input_file = "/dmidata/projects/nckf/earthshine/Infrasound/DICKSON/I18DK2023259.
 input_file = "/dmidata/projects/nckf/earthshine/Infrasound/BJORNO/I18DK2022070.asc"
 input_file = "/dmidata/projects/nckf/earthshine/Infrasound/BJORNO/I37NO2022070.asc"
 input_file = "/dmidata/users/nje/Work/Infrasound/Datafiles/I22FR2022015.asc"
+input_file = "/dmidata/users/nje/Work/Infrasound/Datafiles/I24FR2022015.asc"
+input_file = "/dmidata/users/nje/Work/Infrasound/Datafiles/I36NZ2022015.asc"
 nlines = 4 #3 # see the number of alpha lines in the input file, could be 4 or 3
 
 # Initialize variables
 output_dir = "/dmidata/projects/nckf/earthshine/Infrasound/BJORNO/NO2022070/"
-output_dir = "/dmidata/projects/nckf/earthshine/Infrasound/I22FR/"
+output_dir = "/dmidata/projects/nckf/earthshine/Infrasound/I24FR/"
+output_dir = "/dmidata/projects/nckf/earthshine/Infrasound/I36FR/"
 os.makedirs(output_dir, exist_ok=True)
 
 sta = ""
