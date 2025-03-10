@@ -1,6 +1,8 @@
 ---
 title: "GPS breaks finder and tabulator - mélange GPS units"
-output: html_notebook
+output: 
+  pdf_document: 
+    fig_height: 7
 ---
 
 Process the data saved by 'Read_All_GPS_3.Rmd'  
@@ -73,10 +75,6 @@ findbreaks <- function(df_in,main_str)
 }
 ```
 
-
-
-
-#
 ```{r}
 for (iy in 2022:2023)
 {
@@ -90,5 +88,8 @@ for (iy in 2022:2023)
 
 }
 ```
+
+
+
 
 
