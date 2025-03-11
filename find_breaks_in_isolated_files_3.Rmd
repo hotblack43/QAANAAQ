@@ -1,5 +1,5 @@
 ---
-title: "Detect jumps in lon or lat or speed and tabulate - using mclust"
+title: "Detect jumps in lon or lat or speed and tabulate - using mclust and DBSCAN"
 output: 
   pdf_document: 
     fig_height: 8
@@ -15,11 +15,13 @@ library(geosphere)
 library(dplyr)
 library(MASS)
 library(mclust)
+library(dbscan)
+library(ggplot2)
 files <- list.files(path='OUTPUT',pattern='isolated',full.names = TRUE)
 idx <- grep('dateRange',files)
 files <- files[-idx]
 #
-Groups_wanted <- 3
+Groups_wanted <- 5
 ```
 
 # define calculate speeds function
@@ -37,9 +39,7 @@ speed_calc <- function(df_her) {
                               cbind(df_her$Longitude[itime + 1], df_her$Latitude[itime + 1]),
                               r = 6378137)
     speed[itime] <- (distance / time_diff[itime]) # m/sec
-    
   }
-  #speed <- speed_calc(df)
   speed <- c(speed,speed[length(speed)]*NA)
   df_ny <- cbind(df_her,speed)
   
@@ -130,7 +130,7 @@ breakfinder <- function(x, y, width) {
 # loop
 ```{r}
 
-for (ifil in 3:3)
+for (ifil in 1:1)
   # 
 #for (ifil in 1:length(files))
 {
@@ -321,9 +321,10 @@ for (iclus in uni_clust) {
   idx <- which(df$class == iclus)
   start <- min(df$DateTimeUTC[idx])
   stop <- max(df$DateTimeUTC[idx])
-  
+  mean_speed <- median(df$speed[idx],na.rm=T)*3600 # now speed in m/hr
+  sd_speed <- sd(df$speed[idx],na.rm=T)
   # Append to data frame
-  listen <- rbind(listen, data.frame(class = iclus, start = start, stop = stop))
+  listen <- rbind(listen, data.frame(class = iclus, start = start, stop = stop, mean_speed = round(mean_speed,1), sd_speed = round(sd_speed,2)))
 #  points(df$Longitude[idx],df$Latitude[idx],col=iclus,pch=19)
   # Add numbers instead of colored dots
   text(df$Longitude[idx], df$Latitude[idx], labels = iclus, col = "black", cex = 0.7)
@@ -333,5 +334,58 @@ for (iclus in uni_clust) {
 # Print result
 print(listen)
 
+```
+
+# try DBSCAN
+```{r}
+
+df_her <- df
+# Convert DateTimeUTC to numeric (seconds since first timestamp)
+df_her$TimeSecs <- as.numeric(difftime(df_her$DateTimeUTC, min(df_her$DateTimeUTC), units = "secs"))
+
+# Prepare data: Longitude, Latitude, and TimeSecs
+df_cluster <- df_her[, c("Longitude", "Latitude", "TimeSecs")]
+
+# Scale the features to ensure equal weighting
+df_scaled <- scale(df_cluster)
+# Set DBSCAN parameters (eps and minPts need tuning)
+eps_val <- 0.2  # Adjust for latitude/longitude precision
+min_pts <- 100     # Minimum points to form a cluster
+
+# Run DBSCAN on Longitude, Latitude, and Time (scaled)
+db <- dbscan(df_scaled, eps = eps_val, minPts = min_pts)
+
+# Assign clusters (outliers get cluster 0)
+df_her$Cluster_DBSCAN <- db$cluster
+
+# Plot DBSCAN results
+ggplot(df_her, aes(x = Longitude, y = Latitude, color = as.factor(Cluster_DBSCAN))) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  ggtitle("DBSCAN Clustering (Time & Space)")
+#
+# use DBSCAN instead
+uni_clust <- unique(df_her$Cluster_DBSCAN)
+uni_clust <- uni_clust[uni_clust != 0]
+# Initialize an empty data frame
+listen2 <- data.frame(class = character(), start = as.POSIXct(character()), stop = as.POSIXct(character()), stringsAsFactors = FALSE)
+plot(df_her$Longitude,df_her$Latitude,pch=19,cex=0.1)
+# Loop through each unique class
+for (iclus in uni_clust) {
+  idx <- which(df_her$class == iclus)
+  start <- min(df_her$DateTimeUTC[idx])
+  stop <- max(df_her$DateTimeUTC[idx])
+  mean_speed <- median(df_her$speed[idx],na.rm=T)*3600 # now speed in m/hr
+  sd_speed <- sd(df_her$speed[idx],na.rm=T)
+  # Append to data frame
+  listen2 <- rbind(listen2, data.frame(class = iclus, start = start, stop = stop, mean_speed = round(mean_speed,1), sd_speed = round(sd_speed,2)))
+#  points(df_her$Longitude[idx],df_her$Latitude[idx],col=iclus,pch=19)
+  # Add numbers instead of colored dots
+  text(df_her$Longitude[idx], df_her$Latitude[idx], labels = iclus, col = "black", cex = 0.7)
+
+}
+
+# Print result
+print(listen2)
 ```
 
