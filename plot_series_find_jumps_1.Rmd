@@ -1,0 +1,200 @@
+---
+title: "Date/Time jumps in bird positions"
+output: 
+  pdf_document: 
+    fig_height: 9
+---
+
+ 
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(dplyr)
+#
+filename <- "/dmidata/projects/nckf/earthshine/WORKSHOP/QAANAAQ/DATA/All_birds_all_points.xlsx"
+library(readxl)
+
+sheet_names <- excel_sheets(filename)
+print(sheet_names)
+#
+# For each sheet, read just the header and print column names
+for (sheet in sheet_names) {
+  cat("\n--- Sheet:", sheet, "---\n")
+  cols <- colnames(read_excel(filename, sheet = sheet, n_max = 0))  # read only headers
+  print(cols)
+}
+```
+
+# Extract each
+```{r}
+target_cols <- c("Timestamp_UTC", "Latitude", "Longitude")
+ 
+
+all_data <- data.frame()  # empty data frame to bind into
+
+for (sheet in sheet_names) {
+  df <- read_excel(filename, sheet = sheet)
+
+  available <- intersect(target_cols, colnames(df))
+  if (length(available) > 0) {
+    df <- df[, available, drop = FALSE]
+
+    if ("Timestamp_UTC" %in% colnames(df)) {
+      df$Timestamp_UTC <- as.POSIXct(df$Timestamp_UTC, tz = "UTC")
+    }
+
+    df$sheet <- sheet  # add sheet name for traceability
+
+    all_data <- bind_rows(all_data, df)
+  } else {
+    cat("Skipping sheet", sheet, "- no matching columns\n")
+  }
+}
+```
+
+# Plot each
+```{r}
+statyears <- unique(all_data$sheet)
+for (istatyear in statyears)
+{
+  par(mfrow=c(3,1))
+  idx <- which(all_data$sheet == istatyear)
+  plot(all_data$Longitude[idx],all_data$Latitude[idx],main=istatyear,pch=19,cex=0.2,xlab="longitude (degrees)",ylab="Latitude (degrees)")  
+  plot(all_data$Timestamp_UTC[idx],all_data$Latitude[idx],pch=19,cex=0.2,xlab="Time/Date (UTC)",ylab="Latitude (degrees)")  
+  plot(all_data$Timestamp_UTC[idx],all_data$Longitude[idx],pch=19,cex=0.2,xlab="Time/Date (UTC)",ylab="Longitude (degrees)")  
+}
+```
+# deal with individual series
+
+```{r}
+library(shiny)
+library(plotly)
+library(readxl)
+library(dplyr)
+
+filename <- "/dmidata/projects/nckf/earthshine/WORKSHOP/QAANAAQ/DATA/All_birds_all_points.xlsx"
+sheet_names <- excel_sheets(filename)
+
+ui <- fluidPage(
+  tags$script(HTML("
+    $(document).on('keydown', function(e) {
+      if (e.key === 'r') {
+        Shiny.setInputValue('reset_trigger', Math.random());
+      }
+    });
+  ")),
+  titlePanel("Interactive Timestamp Selector"),
+
+  # Select sheet and y-variable
+  fluidRow(
+    column(6, selectInput("sheet", "Select Bird Sheet:", choices = sheet_names, selected = sheet_names[1])),
+    column(6, selectInput("yvar", "Select Y-axis variable:", choices = c("Longitude", "Latitude")))
+  ),
+
+  plotlyOutput("plot", height = "500px"),
+  verbatimTextOutput("hover_info")
+)
+
+server <- function(input, output, session) {
+  selected_range <- reactiveVal(NULL)
+  cursor_x <- reactiveVal(NULL)
+
+  # Load selected sheet data
+  all_data <- reactive({
+    req(input$sheet)
+    read_excel(filename, sheet = input$sheet)
+  })
+
+  # Clear zoom when sheet changes
+  observeEvent(input$sheet, {
+    selected_range(NULL)
+    cursor_x(NULL)
+  })
+
+  filtered_data <- reactive({
+    df <- all_data()
+    r <- selected_range()
+    if (is.null(r)) return(df)
+    df %>% filter(Timestamp_UTC >= r[1], Timestamp_UTC <= r[2])
+  })
+
+  output$plot <- renderPlotly({
+    df <- filtered_data()
+    yvar <- input$yvar
+    cur_x <- cursor_x()
+
+    y_values <- df[[yvar]]
+
+    shapes_list <- list()
+    if (!is.null(cur_x)) {
+      shapes_list <- list(list(
+        type = "line",
+        x0 = cur_x, x1 = cur_x,
+        y0 = min(y_values, na.rm = TRUE),
+        y1 = max(y_values, na.rm = TRUE),
+        line = list(color = "red", width = 1)
+      ))
+    }
+
+    plot_ly(
+      data = df,
+      x = ~Timestamp_UTC,
+      y = df[[yvar]],
+      type = "scatter",
+      mode = "markers",
+      hoverinfo = "none",
+      marker = list(size = 5),
+      source = "main_plot"
+    ) %>%
+      layout(
+        dragmode = "select",
+        shapes = shapes_list,
+        yaxis = list(title = yvar),
+        title = paste("Drag to Zoom | Press 'r' or Double-click to Reset (", input$sheet, ")")
+      )
+  })
+
+  observe({
+    h <- event_data("plotly_hover", source = "main_plot")
+    if (!is.null(h)) {
+      cursor_x(h$x)
+    }
+  })
+
+  observeEvent(event_data("plotly_selected", source = "main_plot"), {
+    sel <- event_data("plotly_selected", source = "main_plot")
+    if (!is.null(sel)) {
+      selected_range(range(sel$x))
+    }
+  })
+
+  observeEvent(event_data("plotly_doubleclick", source = "main_plot"), {
+    selected_range(NULL)
+  })
+
+  observeEvent(input$reset_trigger, {
+    selected_range(NULL)
+  })
+
+  output$hover_info <- renderPrint({
+    x <- cursor_x()
+    if (!is.null(x)) {
+      paste("Timestamp_UTC:", as.character(x))
+    } else {
+      "Hover to see timestamp"
+    }
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+
+
+
+
+
+
+ 
