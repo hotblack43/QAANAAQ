@@ -1,0 +1,8 @@
+plot_I18_files_simply_2.pdf filter=lfs diff=lfs merge=lfs -text
+QAANAAQ/.git/objects/pack/pack-be503ff3fa553d697f227bf2b61c57229f1fefce.pack filter=lfs diff=lfs merge=lfs -text
+DATA/IS18_2018206.dat filter=lfs diff=lfs merge=lfs -text
+DATA/i18dk2022123.asc filter=lfs diff=lfs merge=lfs -text
+DATA/dag123.asc filter=lfs diff=lfs merge=lfs -text
+DATA/old.dag123.asc filter=lfs diff=lfs merge=lfs -text
+FIGURES/panels.pdf filter=lfs diff=lfs merge=lfs -text
+OUTPUT/calving_2022123.rds filter=lfs diff=lfs merge=lfs -text
