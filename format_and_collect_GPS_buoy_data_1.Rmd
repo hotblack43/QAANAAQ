@@ -1,0 +1,537 @@
+---
+title: "GPS data collector"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+Collect GPS data into one file to rule them all
+
+```{r}
+rm(list = ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+library(sf)
+library(ggplot2)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(readxl)
+# ---- Setup ----
+path  <- "/net/isilon/ifs/arch/home/ang/qaanaaq_fielddata/2024_OMB_GPStracker/data_decrypted_2024-10-08/"
+files <- c(
+  "data_2024_DMI_tracker_TBA.csv",
+  "data_2024_DMI_tracker_XVH.csv",
+  "data_2024_DMI_tracker_GPR.csv",
+  "data_2023_DMI_tracker_EXB.csv",
+  "data_2023_DMI_tracker_DXT.csv"
+)
+
+# Initialize an empty data.frame with desired columns
+OMBlisten <- data.frame(
+  POSIX = character(),
+  lat   = numeric(),
+  lon   = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# ---- Ingest ----
+for (ifil in files) {
+  fpath <- file.path(path, ifil)
+  if (!file.exists(fpath)) {
+    warning(sprintf("[SKIP] File not found: %s", fpath))
+    next
+  }
+  df <- tryCatch(
+    read.csv(fpath, sep = ",", header = FALSE, stringsAsFactors = FALSE),
+    error = function(e) {
+      warning(sprintf("[SKIP] Read error in %s: %s", fpath, conditionMessage(e)))
+      return(NULL)
+    }
+  )
+  if (is.null(df)) next
+
+  if (ncol(df) < 3L) {
+    warning(sprintf("[SKIP] <3 columns in %s (found %d)", fpath, ncol(df)))
+    next
+  }
+
+  # Keep first three columns and name them
+  df <- df[, 1:3]
+  colnames(df) <- c("POSIX", "lat", "lon")
+
+  # Bind
+  OMBlisten <- rbind(OMBlisten, df)
+}
+
+# ---- Type coercion & cleanup ----
+# Coerce lat/lon to numeric (silently NAs if bad)
+suppressWarnings({
+  OMBlisten$lat <- as.numeric(OMBlisten$lat)
+  OMBlisten$lon <- as.numeric(OMBlisten$lon)
+})
+
+# Try to parse timestamps to POSIXct (UTC). If many formats exist, attempt a few.
+parse_ts <- function(x) {
+  # Try common formats; keep character if all fail
+  fmts <- c(
+    "%Y-%m-%d %H:%M:%S",
+    "%Y/%m/%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%SZ",
+    "%Y-%m-%dT%H:%M:%S",
+    "%d/%m/%Y %H:%M:%S"
+  )
+  for (f in fmts) {
+    ts <- as.POSIXct(x, format = f, tz = "UTC")
+    if (!all(is.na(ts))) return(ts)  # accept first format that yields any non-NA
+  }
+  return(x)  # give up: keep as character
+}
+
+OMBlisten$POSIX <- parse_ts(OMBlisten$POSIX)
+
+# Drop exact duplicates and order by time when possible
+OMBlisten <- unique(OMBlisten)
+if (inherits(OMBlisten$POSIX, "POSIXct")) {
+  OMBlisten <- OMBlisten[order(OMBlisten$POSIX, OMBlisten$lat, OMBlisten$lon), , drop = FALSE]
+} else {
+  OMBlisten <- OMBlisten[order(OMBlisten$POSIX, OMBlisten$lat, OMBlisten$lon), , drop = FALSE]
+}
+
+# ---- Quick report ----
+cat(sprintf("[INFO] Rows: %d | Columns: %d\n", nrow(OMBlisten), ncol(OMBlisten)))
+print(utils::head(OMBlisten, 10))
+
+# Optional: save combined file
+# write.csv(OMBlisten, file = "qaanaaq_OMBlisten_combined.csv", row.names = FALSE)
+
+```
+
+```{r}
+ 
+
+# ---- Setup ----
+path  <- "/net/isilon/ifs/arch/home/ang/qaanaaq_fielddata/2025_OMB_GPStracker/data_decrypted_2025-07-23/"
+files <- c(
+"data_2023_DMI_tracker_EXB.csv", "data_2024_DMI_tracker_TBA.csv", "data_2024_DMI_tracker_GPR.csv", "data_2024_DMI_tracker_XVH.csv"
+)
+
+
+# ---- Ingest ----
+for (ifil in files) {
+  fpath <- file.path(path, ifil)
+  if (!file.exists(fpath)) {
+    warning(sprintf("[SKIP] File not found: %s", fpath))
+    next
+  }
+  df <- tryCatch(
+    read.csv(fpath, sep = ",", header = FALSE, stringsAsFactors = FALSE),
+    error = function(e) {
+      warning(sprintf("[SKIP] Read error in %s: %s", fpath, conditionMessage(e)))
+      return(NULL)
+    }
+  )
+  if (is.null(df)) next
+
+  if (ncol(df) < 3L) {
+    warning(sprintf("[SKIP] <3 columns in %s (found %d)", fpath, ncol(df)))
+    next
+  }
+
+  # Keep first three columns and name them
+  df <- df[, 1:3]
+  colnames(df) <- c("POSIX", "lat", "lon")
+
+  # Bind
+  OMBlisten <- rbind(OMBlisten, df)
+}
+
+# ---- Type coercion & cleanup ----
+# Coerce lat/lon to numeric (silently NAs if bad)
+suppressWarnings({
+  OMBlisten$lat <- as.numeric(OMBlisten$lat)
+  OMBlisten$lon <- as.numeric(OMBlisten$lon)
+})
+
+# Try to parse timestamps to POSIXct (UTC). If many formats exist, attempt a few.
+parse_ts <- function(x) {
+  # Try common formats; keep character if all fail
+  fmts <- c(
+    "%Y-%m-%d %H:%M:%S",
+    "%Y/%m/%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%SZ",
+    "%Y-%m-%dT%H:%M:%S",
+    "%d/%m/%Y %H:%M:%S"
+  )
+  for (f in fmts) {
+    ts <- as.POSIXct(x, format = f, tz = "UTC")
+    if (!all(is.na(ts))) return(ts)  # accept first format that yields any non-NA
+  }
+  return(x)  # give up: keep as character
+}
+
+OMBlisten$POSIX <- parse_ts(OMBlisten$POSIX)
+
+# Drop exact duplicates and order by time when possible
+OMBlisten <- unique(OMBlisten)
+if (inherits(OMBlisten$POSIX, "POSIXct")) {
+  OMBlisten <- OMBlisten[order(OMBlisten$POSIX, OMBlisten$lat, OMBlisten$lon), , drop = FALSE]
+} else {
+  OMBlisten <- OMBlisten[order(OMBlisten$POSIX, OMBlisten$lat, OMBlisten$lon), , drop = FALSE]
+}
+
+# ---- Quick report ----
+cat(sprintf("[INFO] Rows: %d | Columns: %d\n", nrow(OMBlisten), ncol(OMBlisten)))
+print(utils::head(OMBlisten, 10))
+
+# Optional: save combined file
+# write.csv(OMBlisten, file = "qaanaaq_OMBlisten_combined.csv", row.names = FALSE)
+
+```
+
+```{r}
+ 
+
+# ---- Setup ----
+path  <- "/net/isilon/ifs/arch/home/ang/qaanaaq_fielddata/2025_OMB_GPStracker/data_decrypted_2025-07-23/"
+files <- c(
+"data_2023_DMI_tracker_EXB.csv", "data_2024_DMI_tracker_TBA.csv", "data_2024_DMI_tracker_GPR.csv", "data_2024_DMI_tracker_XVH.csv"
+)
+
+
+# ---- Ingest ----
+for (ifil in files) {
+  fpath <- file.path(path, ifil)
+  if (!file.exists(fpath)) {
+    warning(sprintf("[SKIP] File not found: %s", fpath))
+    next
+  }
+  df <- tryCatch(
+    read.csv(fpath, sep = ",", header = FALSE, stringsAsFactors = FALSE),
+    error = function(e) {
+      warning(sprintf("[SKIP] Read error in %s: %s", fpath, conditionMessage(e)))
+      return(NULL)
+    }
+  )
+  if (is.null(df)) next
+
+  if (ncol(df) < 3L) {
+    warning(sprintf("[SKIP] <3 columns in %s (found %d)", fpath, ncol(df)))
+    next
+  }
+
+  # Keep first three columns and name them
+  df <- df[, 1:3]
+  colnames(df) <- c("POSIX", "lat", "lon")
+
+  # Bind
+  OMBlisten <- rbind(OMBlisten, df)
+}
+
+# ---- Type coercion & cleanup ----
+# Coerce lat/lon to numeric (silently NAs if bad)
+suppressWarnings({
+  OMBlisten$lat <- as.numeric(OMBlisten$lat)
+  OMBlisten$lon <- as.numeric(OMBlisten$lon)
+})
+
+# Try to parse timestamps to POSIXct (UTC). If many formats exist, attempt a few.
+parse_ts <- function(x) {
+  # Try common formats; keep character if all fail
+  fmts <- c(
+    "%Y-%m-%d %H:%M:%S",
+    "%Y/%m/%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%SZ",
+    "%Y-%m-%dT%H:%M:%S",
+    "%d/%m/%Y %H:%M:%S"
+  )
+  for (f in fmts) {
+    ts <- as.POSIXct(x, format = f, tz = "UTC")
+    if (!all(is.na(ts))) return(ts)  # accept first format that yields any non-NA
+  }
+  return(x)  # give up: keep as character
+}
+
+OMBlisten$POSIX <- parse_ts(OMBlisten$POSIX)
+
+# Drop exact duplicates and order by time when possible
+OMBlisten <- unique(OMBlisten)
+if (inherits(OMBlisten$POSIX, "POSIXct")) {
+  OMBlisten <- OMBlisten[order(OMBlisten$POSIX, OMBlisten$lat, OMBlisten$lon), , drop = FALSE]
+} else {
+  OMBlisten <- OMBlisten[order(OMBlisten$POSIX, OMBlisten$lat, OMBlisten$lon), , drop = FALSE]
+}
+
+# ---- Quick report ----
+cat(sprintf("[INFO] Rows: %d | Columns: %d\n", nrow(OMBlisten), ncol(OMBlisten)))
+print(utils::head(OMBlisten, 10))
+
+# Optional: save combined file
+# write.csv(OMBlisten, file = "qaanaaq_OMBlisten_combined.csv", row.names = FALSE)
+
+```
+ 
+# Now read the extended 'trusted' data
+ 
+```{r}
+
+
+# ---- Packages ----
+suppressPackageStartupMessages({
+  if (!requireNamespace("readxl", quietly = TRUE)) {
+    stop("Package 'readxl' is required. Install with install.packages('readxl').")
+  }
+})
+
+
+# ---- Setup ----
+path  <- "/net/isilon/ifs/arch/home/ang/qaanaaq_fielddata/2025-2022_Trusted_GPStracker/"
+files <- c(
+  "Mallemuk_2022-2024.xlsx",
+  "Soekonge_2022-2025.xlsx",
+  "Ismaage_2022-2025.xlsx",
+  "Edder_2022-2025.xlsx",
+  "Havoern_2022-2025.xlsx",
+  "Havterne_2022-2025.xlsx"
+)
+
+# Initialize an empty data.frame with desired columns (final order & names)
+TRUSTEDlisten <- data.frame(
+  POSIX = as.POSIXct(character()),
+  lat   = numeric(),
+  lon   = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# ---- Helpers ----
+
+# Case/space/underscore-insensitive normalizer
+.norm <- function(x) {
+  x <- tolower(gsub("[[:space:]_]+", "", x))
+  x
+}
+
+# Locate the index of a column by a set of acceptable patterns
+find_col <- function(nms, patterns) {
+  nms_n <- .norm(nms)
+  for (p in patterns) {
+    hit <- which(grepl(p, nms_n, fixed = FALSE))
+    if (length(hit) >= 1L) return(hit[1])
+  }
+  integer(0)
+}
+
+# Parse timestamps:
+# - Excel serials (numeric) -> POSIXct UTC using Excel's origin
+# - Character strings -> try common formats
+# - POSIXt -> returned as-is
+to_posix_utc <- function(x) {
+  # If already POSIXt, ensure tz=UTC (without shifting the instant)
+  if (inherits(x, "POSIXt")) {
+    attr(x, "tzone") <- "UTC"
+    return(x)
+  }
+  # Excel numeric serials (might arrive as numeric or integer)
+  if (is.numeric(x)) {
+    # Use Excel 1900 system origin; readxl uses "1899-12-30" (accounts for 1900 leap bug)
+    return(as.POSIXct(x * 86400, origin = "1899-12-30", tz = "UTC"))
+  }
+  # Character: try a set of formats
+  if (is.character(x)) {
+    fmts <- c(
+      "%Y-%m-%d %H:%M:%S",
+      "%Y/%m/%d %H:%M:%S",
+      "%Y-%m-%dT%H:%M:%SZ",
+      "%Y-%m-%dT%H:%M:%S",
+      "%d/%m/%Y %H:%M:%S",
+      "%Y-%m-%d",
+      "%d/%m/%Y"
+    )
+    # Try sequentially; keep first that yields any non-NA
+    for (f in fmts) {
+      ts <- as.POSIXct(x, format = f, tz = "UTC")
+      if (!all(is.na(ts))) return(ts)
+    }
+    # Last resort: let R guess
+    guess <- suppressWarnings(as.POSIXct(x, tz = "UTC"))
+    return(guess)
+  }
+  # Fallback: make NAs of same length
+  as.POSIXct(rep(NA_real_, length(x)), origin = "1970-01-01", tz = "UTC")
+}
+
+# ---- Ingest ----
+for (ifil in files) {
+  fpath <- file.path(path, ifil)
+  if (!file.exists(fpath)) {
+    warning(sprintf("[SKIP] File not found: %s", fpath))
+    next
+  }
+
+  df <- tryCatch(
+    {
+      # Read FIRST sheet; if you need a named sheet later, replace sheet = 1 with sheet = "SheetName"
+      read_excel(path = fpath, sheet = 1)
+    },
+    error = function(e) {
+      warning(sprintf("[SKIP] Read error in %s: %s", fpath, conditionMessage(e)))
+      return(NULL)
+    }
+  )
+  if (is.null(df) || nrow(df) == 0L) next
+
+  # Ensure we’re working with a data.frame (not tibble), and drop empty rows
+  df <- as.data.frame(df, stringsAsFactors = FALSE)
+  if (!nrow(df)) next
+
+  # Find columns for lon/lat/time using flexible patterns
+  nms <- colnames(df)
+
+  idx_lon <- find_col(nms, patterns = c("longitude$", "^lon$", "lon[g]*", "x$", "long"))
+  idx_lat <- find_col(nms, patterns = c("latitude$", "^lat$", "lat", "y$"))
+  idx_pos <- find_col(nms, patterns = c("timestamputc", "timeutc", "datetimeutc", "timestamp", "datetime", "^time$", "^date$"))
+
+  # If any are missing, try a more permissive search
+  if (!length(idx_lon)) idx_lon <- find_col(nms, patterns = c("lon", "long"))
+  if (!length(idx_lat)) idx_lat <- find_col(nms, patterns = c("lat"))
+  if (!length(idx_pos)) idx_pos <- find_col(nms, patterns = c("utc", "date", "time"))
+
+  if (!length(idx_lon) || !length(idx_lat) || !length(idx_pos)) {
+    warning(sprintf("[SKIP] Could not identify lon/lat/posix columns in: %s (have: %s)",
+                    fpath, paste(nms, collapse = ", ")))
+    next
+  }
+
+  # Extract and rename to target names
+  sub <- df[, c(idx_pos, idx_lat, idx_lon)]
+  colnames(sub) <- c("POSIX", "lat", "lon")
+
+  # Coerce types
+  suppressWarnings({
+    sub$lat <- as.numeric(sub$lat)
+    sub$lon <- as.numeric(sub$lon)
+  })
+  sub$POSIX <- to_posix_utc(sub$POSIX)
+
+  # Keep only the three columns in the final order: POSIX, lat, lon
+  sub <- sub[, c("POSIX", "lat", "lon")]
+
+  # Bind
+  TRUSTEDlisten <- rbind(TRUSTEDlisten, sub)
+}
+
+# ---- Cleanup ----
+# Drop exact duplicates
+TRUSTEDlisten <- unique(TRUSTEDlisten)
+TRUSTEDlisten <- na.omit(TRUSTEDlisten)
+idx <- which(TRUSTEDlisten$lat > 70)
+TRUSTEDlisten <- TRUSTEDlisten[idx,]
+# Order by time (then lat/lon) when available
+if (inherits(TRUSTEDlisten$POSIX, "POSIXct")) {
+  TRUSTEDlisten <- TRUSTEDlisten[order(TRUSTEDlisten$POSIX, TRUSTEDlisten$lat, TRUSTEDlisten$lon), , drop = FALSE]
+} else {
+  TRUSTEDlisten <- TRUSTEDlisten[order(TRUSTEDlisten$POSIX, TRUSTEDlisten$lat, TRUSTEDlisten$lon), , drop = FALSE]
+}
+
+# ---- Quick report ----
+cat(sprintf("[INFO] Rows: %d | Columns: %d\n", nrow(TRUSTEDlisten), ncol(TRUSTEDlisten)))
+print(utils::head(TRUSTEDlisten, 10))
+
+# Optional: save combined file (kept as POSIX,lat,lon; names already POSIX/lat/lon)
+# write.csv(TRUSTEDlisten, file = "qaanaaq_TRUSTEDlisten_combined.csv", row.names = FALSE)
+
+
+```
+ 
+# Save things
+```{r}
+saveRDS(TRUSTEDlisten,"OUTPUT/TRUSTED.rds")
+saveRDS(OMBlisten,"OUTPUT/OMB.rds")
+full <- rbind(OMBlisten,TRUSTEDlisten)
+saveRDS(full,"OUTPUT/OMB_TRUSTED.rds")
+```
+
+# map
+```{r}
+# --- Qaanaaq local map: simplest possible (no crop ops), high-res coastlines ---
+
+# install.packages(c("sf","ggplot2","rnaturalearth","rnaturalearthdata"))  # once
+ 
+
+
+# Optional: high-latitude robustness (not strictly needed, but harmless)
+sf::sf_use_s2(FALSE)
+
+# Your points in data.frame `full` with columns lon, lat (and optional name)
+stopifnot(exists("full"))
+stopifnot(all(c("lon","lat") %in% names(full)))
+full <- subset(full, is.finite(lon) & is.finite(lat))
+name_col <- if ("name" %in% names(full)) "name" else NULL
+
+# ---- Qaanaaq centre and box sizes (km) ----
+qaanaaq_lon <- -69.23
+qaanaaq_lat <-  77.47
+boxes_km <- data.frame(width_km = c(50,100,200), height_km = c(50,60,120))
+
+# ---- Helper: km -> box polygon around (lon,lat); returns sfg ----
+make_box_sfg <- function(lon0, lat0, width_km, height_km) {
+  deg_per_km_lat <- 1 / 110.574
+  deg_per_km_lon <- 1 / (111.320 * cospi(lat0/180))
+  half_dx <- (width_km  * deg_per_km_lon) / 2
+  half_dy <- (height_km * deg_per_km_lat) / 2
+  xmin <- lon0 - half_dx; xmax <- lon0 + half_dx
+  ymin <- lat0 - half_dy; ymax <- lat0 + half_dy
+  coords <- matrix(c(xmin,ymin, xmax,ymin, xmax,ymax, xmin,ymax, xmin,ymin),
+                   ncol = 2, byrow = TRUE)
+  st_polygon(list(coords))
+}
+
+# Build boxes
+box_list <- lapply(seq_len(nrow(boxes_km)), function(i)
+  make_box_sfg(qaanaaq_lon, qaanaaq_lat, boxes_km$width_km[i], boxes_km$height_km[i])
+)
+boxes_sf <- st_as_sf(
+  data.frame(id = paste0(boxes_km$width_km,"×",boxes_km$height_km," km")),
+  geometry = st_sfc(box_list, crs = 4326)
+)
+
+# ---- Compute view window from the largest box (no spatial ops) ----
+Wmax <- max(boxes_km$width_km)
+Hmax <- boxes_km$height_km[which.max(boxes_km$width_km)]
+deg_per_km_lat <- 1 / 110.574
+deg_per_km_lon <- 1 / (111.320 * cospi(qaanaaq_lat/180))
+
+half_dx <- (Wmax * deg_per_km_lon) / 2
+half_dy <- (Hmax * deg_per_km_lat) / 2
+
+pad_x <- max(0.2, 0.10 * half_dx)   # add a bit of margin (deg)
+pad_y <- max(0.1, 0.10 * half_dy)
+
+xlim <- c(qaanaaq_lon - half_dx - pad_x, qaanaaq_lon + half_dx + pad_x)
+ylim <- c(qaanaaq_lat - half_dy - pad_y, qaanaaq_lat + half_dy + pad_y)
+xlim[1] <- max(-180, xlim[1]); xlim[2] <- min(180, xlim[2])
+ylim[1] <- max(-90,  ylim[1]); ylim[2] <- min(90,  ylim[2])
+
+# ---- Coastlines (high-res) ----
+coast <- rnaturalearth::ne_coastline(scale = "large", returnclass = "sf")
+
+# ---- Plot (local only via coord_sf limits) ----
+p <- ggplot() +
+  geom_sf(data = coast, linewidth = 0.25) +         # no crop needed
+  geom_sf(data = boxes_sf, fill = NA, linewidth = 0.8) +
+  geom_point(data = full, aes(lon, lat), size = 0.7) +
+  { if (!is.null(name_col))
+      geom_text(data = full, aes(lon, lat, label = .data[[name_col]]),
+                nudge_y = 0.15, size = 3)
+  } +
+  coord_sf(xlim = xlim, ylim = ylim, expand = FALSE) +
+  theme_void(base_size = 12) +
+  labs(title = "Qaanaaq region",
+       subtitle = paste("Boxes:", paste(boxes_sf$id, collapse = ", ")),
+       x = "Longitude", y = "Latitude")
+
+print(p)
+
+png("FIGURES/qaanaaq_local_map.png", width = 1400, height = 900, res = 150); print(p); dev.off()
+
+
+```
+

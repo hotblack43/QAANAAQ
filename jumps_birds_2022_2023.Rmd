@@ -1,0 +1,17 @@
+---
+title: "Bird jumps 2022-2023"
+output: 
+  pdf_document: 
+    fig_height: 7
+---
+
+GPS buoys at Qaanaaq
+
+```{r}
+rm(list=ls())
+setwd("~/WORKSHOP/QAANAAQ/")
+
+df <- read.csv("DATA/jumpdates.csv",header=TRUE)
+```
+
+ 

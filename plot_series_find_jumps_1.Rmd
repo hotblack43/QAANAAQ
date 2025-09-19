@@ -12,7 +12,7 @@ rm(list=ls())
 setwd("~/WORKSHOP/QAANAAQ/")
 library(dplyr)
 #
-filename <- "/dmidata/projects/nckf/earthshine/WORKSHOP/QAANAAQ/DATA/All_birds_all_points.xlsx"
+filename <- "DATA/All_birds_all_points.xlsx"
 library(readxl)
 
 sheet_names <- excel_sheets(filename)
@@ -73,7 +73,7 @@ library(plotly)
 library(readxl)
 library(dplyr)
 
-filename <- "/dmidata/projects/nckf/earthshine/WORKSHOP/QAANAAQ/DATA/All_birds_all_points.xlsx"
+filename <- "DATA/All_birds_all_points.xlsx"
 sheet_names <- excel_sheets(filename)
 
 ui <- fluidPage(
