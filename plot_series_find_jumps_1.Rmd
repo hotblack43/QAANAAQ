@@ -13,6 +13,7 @@ setwd("~/WORKSHOP/QAANAAQ/")
 library(dplyr)
 #
 filename <- "DATA/All_birds_all_points.xlsx"
+filename <- "OUTPUT/All_birds_all_points_CONSOLIDATED_v3.xlsx"
 library(readxl)
 
 sheet_names <- excel_sheets(filename)
@@ -68,12 +69,14 @@ for (istatyear in statyears)
 # deal with individual series
 
 ```{r}
+rm(list=ls())
 library(shiny)
 library(plotly)
 library(readxl)
 library(dplyr)
 
 filename <- "DATA/All_birds_all_points.xlsx"
+filename <- "OUTPUT/All_birds_all_points_CONSOLIDATED_v3.xlsx"
 sheet_names <- excel_sheets(filename)
 
 ui <- fluidPage(
