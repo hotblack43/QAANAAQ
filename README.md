@@ -1,1 +1,3 @@
-Tryng to produce examples for trilateration.
+
+
+..sac filerne er i /dmidata/users/nje/Work/Infrasound/Datafiles/
